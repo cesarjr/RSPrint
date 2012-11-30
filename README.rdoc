@@ -1,0 +1,20 @@
+== RSPrint
+
+A Delphi component for matrix printing using device's native commands.
+
+With this component, you can print in matrix printers using draft mode - high speed.
+
+You can use it to fill easily documents like orders, invoices and others that are previous made in off-set.
+
+The goal of this project is to provide an open source alternative for Deltress RDPrint component.
+
+
+
+== Original RSPrint
+
+A variety of versions of this component can be found on Internet.
+
+Unfortunately there isn't (or there wasn't) an official repository to it. And it was very dificult to discover who was the original author.
+
+So, I found Mr. Saverio Vertoni who told me that was the author. I told him about my plans of maintaining the project and he donated me the source. 
+
