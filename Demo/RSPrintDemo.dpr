@@ -2,12 +2,12 @@ program RSPrintDemo;
 
 uses
   Forms,
-  Main in 'Main.pas' {Form1};
+  Main in 'Main.pas' {FrmMain};
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFrmMain, FrmMain);
   Application.Run;
 end.

@@ -1,9 +1,9 @@
-object Form1: TForm1
+object FrmMain: TFrmMain
   Left = 330
   Top = 106
-  Caption = 'Form1'
-  ClientHeight = 339
-  ClientWidth = 528
+  Caption = 'RSPrint Demo App'
+  ClientHeight = 166
+  ClientWidth = 197
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,18 +11,49 @@ object Form1: TForm1
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poDesktopCenter
   PixelsPerInch = 96
   TextHeight = 13
-  object Button1: TButton
-    Left = 168
-    Top = 40
-    Width = 75
-    Height = 25
-    Caption = 'Button1'
-    TabOrder = 0
-    OnClick = Button1Click
+  object lblMode: TLabel
+    Left = 8
+    Top = 17
+    Width = 27
+    Height = 13
+    Caption = 'Mode'
   end
-  object RS: TRSPrinter
+  object btnPreview: TButton
+    Left = 8
+    Top = 96
+    Width = 177
+    Height = 25
+    Caption = 'Preview'
+    TabOrder = 0
+    OnClick = btnPreviewClick
+  end
+  object btnPrint: TButton
+    Left = 8
+    Top = 127
+    Width = 177
+    Height = 25
+    Caption = 'Print'
+    TabOrder = 1
+    OnClick = btnPrintClick
+  end
+  object cmbMode: TComboBox
+    Left = 8
+    Top = 32
+    Width = 177
+    Height = 21
+    Style = csDropDownList
+    ItemIndex = 1
+    TabOrder = 2
+    Text = 'rmWindows'
+    Items.Strings = (
+      'rmFast'
+      'rmWindows'
+      'rmDefault')
+  end
+  object RSPrint: TRSPrinter
     PageSize = pzLegal
     PageLength = 0
     FastPrinter = Epson_FX
@@ -30,7 +61,7 @@ object Form1: TForm1
     FastPort = 'LPT1'
     SaveConfToRegistry = False
     Preview = ppYes
-    Left = 88
-    Top = 136
+    Left = 96
+    Top = 64
   end
 end

@@ -7,32 +7,78 @@ uses
   Dialogs, StdCtrls, RSPrint;
 
 type
-  TForm1 = class(TForm)
-    Button1: TButton;
-    RS: TRSPrinter;
-    procedure Button1Click(Sender: TObject);
+  TFrmMain = class(TForm)
+    btnPreview: TButton;
+    RSPrint: TRSPrinter;
+    btnPrint: TButton;
+    cmbMode: TComboBox;
+    lblMode: TLabel;
+    procedure btnPreviewClick(Sender: TObject);
+    procedure btnPrintClick(Sender: TObject);
+
   private
-    { Private declarations }
-  public
-    { Public declarations }
+    procedure GenerateData;
+    procedure PrintHeader;
+
   end;
 
 var
-  Form1: TForm1;
+  FrmMain: TFrmMain;
 
 implementation
 
 {$R *.dfm}
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFrmMain.btnPreviewClick(Sender: TObject);
 begin
-   RS.BeginDoc;
-   RS.WriteFont(1,1,'Relatorio Geral',[Italic]);
-   RS.Write(2,1,'Codigo');
-   RS.Write(2,10,'Nome');
-   RS.Write(3,3,'0001');
-   RS.Write(3,10,'Wilson');
-   RS.PreviewReal;
+  GenerateData;
+  RSPrint.PreviewReal;
+end;
+
+procedure TFrmMain.btnPrintClick(Sender: TObject);
+begin
+  GenerateData;
+  RSPrint.PrintAll;
+end;
+
+procedure TFrmMain.GenerateData;
+var
+  I: Integer;
+  CurrentLine: Integer;
+begin
+  RSPrint.Mode := TPrinterMode(cmbMode.ItemIndex);
+  RSPrint.ReportName := 'RSPrint Demo App';
+
+  RSPrint.BeginDoc;
+
+  PrintHeader;
+  CurrentLine := 5;
+
+  for I := 1 to 500 do
+  begin
+    RSPrint.Write(CurrentLine,  1, Format('%4.4d', [I]));
+    RSPrint.Write(CurrentLine, 10, 'Record Name Here');
+
+    CurrentLine := CurrentLine + 1;
+
+    if CurrentLine > RSPrint.Lines then
+    begin
+      RSPrint.NewPage;
+      PrintHeader;
+      CurrentLine := 5;
+    end;
+  end;
+end;
+
+procedure TFrmMain.PrintHeader;
+begin
+  RSPrint.WriteFont(1,  1, 'Report Example',[Bold]);
+  RSPrint.WriteFont(1, 72, Format('Page: %2.2d', [RSPrint.PageNo]), [Bold]);
+  RSPrint.LineH(2, 1, 79, ltSingle);
+
+  RSPrint.Write(3,  1, 'ID');
+  RSPrint.Write(3, 10, 'Name');
+  RSPrint.LineH(4,  1, 79, ltSingle);
 end;
 
 end.
