@@ -2,8 +2,8 @@ unit RSPrint;
 
 interface
 
-{$R RSPrint.RES}
-//Alterado por Savério Vertoni - Delphi 2009
+{$R rsp.dres}
+
 uses
   Windows,
   Messages,

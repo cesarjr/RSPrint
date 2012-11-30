@@ -1,8 +1,8 @@
-program Project1;
+program RSPrintDemo;
 
 uses
   Forms,
-  Unit1 in 'Unit1.pas' {Form1};
+  Main in 'Main.pas' {Form1};
 
 {$R *.res}
 
