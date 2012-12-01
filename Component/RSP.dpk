@@ -30,6 +30,9 @@ requires
   vclsmp;
 
 contains
-  RSPrint in 'RSPrint.pas';
+  RSPrint in 'RSPrint.pas',
+  RSPrintV in 'RSPrintV.pas',
+  FormConfImp in 'FormConfImp.pas',
+  SplPrint in 'SplPrint.pas';
 
 end.

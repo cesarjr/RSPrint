@@ -3,11 +3,12 @@ unit FormConfImp;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, Buttons,printers;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Buttons,printers;
 
 type
-  TImpTxt= tstrings;
+
+  TImpTxt= TStrings;
+
   TConfiguraImpressora = class(TForm)
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
@@ -22,12 +23,14 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure WinPrintersChange(Sender: TObject);
+
   private
     procedure SetaModo;
-    { Private declarations }
+
   public
     ImpressorasTexto:tstrings;
     ImpTxtSel:string;
+
   end;
 
 var
@@ -39,57 +42,53 @@ implementation
 
 procedure TConfiguraImpressora.BtnPropriedadesClick(Sender: TObject);
 var
-  PrnSet : TPrinterSetupDialog;
-
+  PrnSet: TPrinterSetupDialog;
 begin
-      PrnSet := TPrinterSetupDialog.Create(self);
-      PrnSet.Execute;
-      PrnSet.Free;
-
+  PrnSet := TPrinterSetupDialog.Create(self);
+  PrnSet.Execute;
+  PrnSet.Free;
 end;
 
 procedure TConfiguraImpressora.ListaImpressorasChange(Sender: TObject);
 begin
-  ImpTxtSel:=ListaImpressoras.Items[ListaImpressoras.ItemIndex];
+  ImpTxtSel := ListaImpressoras.Items[ListaImpressoras.ItemIndex];
 end;
 
 procedure TConfiguraImpressora.FormCreate(Sender: TObject);
 begin
-ImpressorasTexto:= tstringlist.Create;
+  ImpressorasTexto := TstringList.Create;
 end;
 
 procedure TConfiguraImpressora.SetaModo;
 begin
   if (printer.Canvas.TextHeight('X') = 1) or (printer.Canvas.TextHeight('X') = 83) then
-   begin
-    ListaImpressoras.Visible:=true;
-    Labelmodelos.Visible:=true;
-//    listaimpressoras.Text:=ImpTxtSel;
-    BtnPropriedades.Enabled:=false;
-    BtnPropriedades.Visible:=false;
-   end
+  begin
+    ListaImpressoras.Visible := True;
+    Labelmodelos.Visible := True;
+    BtnPropriedades.Enabled := False;
+    BtnPropriedades.Visible := False;
+  end
   else
-   begin
-    BtnPropriedades.Enabled:=true;
-    BtnPropriedades.Visible:=true;
-    ListaImpressoras.Visible:=false;
-    Labelmodelos.Visible:=false;
-   end;
-
+  begin
+    BtnPropriedades.Enabled := True;
+    BtnPropriedades.Visible := True;
+    ListaImpressoras.Visible := False;
+    Labelmodelos.Visible := False;
+  end;
 end;
 
 procedure TConfiguraImpressora.FormShow(Sender: TObject);
 begin
-  listaimpressoras.Items:=impressorastexto;
-  listaimpressoras.Text:=ImpTxtSel;
-  WinPrinters.Items:=printer.Printers;
-  winprinters.ItemIndex:=  printer.PrinterIndex;
+  listaimpressoras.Items := impressorastexto;
+  listaimpressoras.Text := ImpTxtSel;
+  WinPrinters.Items := printer.Printers;
+  winprinters.ItemIndex := printer.PrinterIndex;
   setamodo;
 end;
 
 procedure TConfiguraImpressora.WinPrintersChange(Sender: TObject);
 begin
-  printer.PrinterIndex:=winprinters.ItemIndex;
+  printer.PrinterIndex := winprinters.ItemIndex;
   setamodo;
 end;
 

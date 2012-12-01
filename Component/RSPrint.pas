@@ -2,144 +2,133 @@ unit RSPrint;
 
 interface
 
-{$R rsp.dres}
+//{$R RSP.dres}
 
 uses
-  Windows,
-  Messages,
-  SysUtils,
-  CommDlg,
-  Classes,
-  Graphics,
-  Controls,
-  ExtCtrls,
-  StdCtrls,
-  Consts,
-  ShellAPI,
-  menus,
-  Printers,
-  ComCtrls,
-  Forms,
-  Dialogs;
+  Windows, Messages, SysUtils, CommDlg, Classes, Graphics, Controls, ExtCtrls, StdCtrls, Consts, ShellAPI, menus,
+  Printers, ComCtrls, Forms, Dialogs;
 
 const
   RSPrintVersion = 'Versão 2.0';
-  WM_TASKICON = WM_USER+10;
+  WM_TASKICON = WM_USER + 10;
 
 type
   TRSPrinter = class;
 
-  TPrinterModel = (Cannon_F60,Cannon_Laser,Epson_FX,Epson_LX,Epson_Stylus,HP_Deskjet,HP_Laserjet,HP_Thinkjet,IBM_Color_Jet,IBM_PC_Graphics,IBM_Proprinter,NEC_3500,NEC_Pinwriter,Mp20Mi);
+  TPrinterModel = (Cannon_F60, Cannon_Laser, Epson_FX, Epson_LX, Epson_Stylus, HP_Deskjet, HP_Laserjet, HP_Thinkjet,
+    IBM_Color_Jet, IBM_PC_Graphics, IBM_Proprinter, NEC_3500, NEC_Pinwriter,Mp20Mi);
 
-  TPrinterMode = (pmFast,pmWindows);
-  TLineType = (ltSingle,ltDouble);
+  TPrinterMode = (pmFast, pmWindows);
+  TLineType = (ltSingle, ltDouble);
 
-  TFontType = (Bold,Italic,Underline,Compress,DobleWide);
+  TFontType = (Bold, Italic, Underline, Compress, DobleWide);
   TFastFont = Set of TFontType;
 
   TTbAlign = (alLeft, alCenter, alRight);
 
   PPage = ^TPage;
   TPage = record
-    Writed : TList;
-    VerticalLines : TList;
-    HorizLines : TList;
-    PrintedLines : byte;
-    Graphics : TList;
+    Writed: TList;
+    VerticalLines: TList;
+    HorizLines: TList;
+    PrintedLines: byte;
+    Graphics: TList;
   end;
 
   PGraphic = ^TGraphic;
   TGraphic = record
-    Col : single;
-    Line : single;
-    Picture : TPicture;
+    Col: single;
+    Line: single;
+    Picture: TPicture;
   end;
 
   PWrite = ^TWrite;
   TWrite = record
-    Col : byte;
-    Line : byte;
-    FastFont : TFastFont;
-    Text : string;
+    Col: byte;
+    Line: byte;
+    FastFont: TFastFont;
+    Text: string;
   end;
+
   PHorizLine = ^THorizLine;
   THorizLine = record
-    Col1 : byte;
-    Col2 : byte;
-    Line : byte;
-    Kind : TLineType;
+    Col1: byte;
+    Col2: byte;
+    Line: byte;
+    Kind: TLineType;
   end;
+
   PVertLine = ^TVertLine;
   TVertLine = record
-    Col : byte;
-    Line1 : byte;
-    Line2 : byte;
-    Kind : TLineType;
+    Col: byte;
+    Line1: byte;
+    Line2: byte;
+    Kind: TLineType;
   end;
 
-  EPrinterError = class( Exception );
+  EPrinterError = class(Exception);
 
-  TInitialZoom = (zWidth,zHeight);
+  TInitialZoom = (zWidth, zHeight);
 
-  TPageSize = (pzDefault,pzContinuous,pzLetter,pzLegal,pzA4,pzLetterSmall,pzTabloid,pzLedger,pzStatement,pzExecutive,pzA3,pzA4small,pzA5,pzB4,pzB5,pzFolio,pzQuarto,pz10x14,pz11x17,pzNote,pzEnv9,pzEnv10,pzEnv11,pzEnv12,pzEnv14,pzEnvDl,pzEnvC5,pzEnvC3,pzEnvC4,pzEnvC6,pzEnvC65,pzEnvB4,pzEnvB5,pzEnvB6,pzEnvItaly,pzEnvMonarch,pzEnvPersonal,pzFanfoldUS,pzFanfoldStd,pzFanfoldLgl);
+  TPageSize = (pzDefault, pzContinuous, pzLetter, pzLegal, pzA4, pzLetterSmall, pzTabloid, pzLedger, pzStatement,
+    pzExecutive, pzA3, pzA4small, pzA5, pzB4, pzB5, pzFolio, pzQuarto, pz10x14, pz11x17, pzNote, pzEnv9, pzEnv10,
+    pzEnv11, pzEnv12, pzEnv14, pzEnvDl, pzEnvC5, pzEnvC3, pzEnvC4, pzEnvC6, pzEnvC65, pzEnvB4, pzEnvB5, pzEnvB6,
+    pzEnvItaly, pzEnvMonarch, pzEnvPersonal, pzFanfoldUS, pzFanfoldStd, pzFanfoldLgl);
 
   PTbPrn = ^TTbPrn;
   TTbPrn = record
-    Name : string;
-    FastModel : string;
-    WinModel  : string;
-    FastPort  : string;
-    WinTopMargin : integer;
-    WinBottomMargin : integer;
-    DefaultMode : TPrinterMode;
+    Name: string;
+    FastModel: string;
+    WinModel: string;
+    FastPort: string;
+    WinTopMargin: Integer;
+    WinBottomMargin: Integer;
+    DefaultMode: TPrinterMode;
   end;
 
-  TTbSaveMode = (smNoSave,smFile,smRegistry);
-
+  TTbSaveMode = (smNoSave, smFile, smRegistry);
 
   PPrintJob = ^TPrintJob;
   TPrintJob = record
-    Name : string;
-    PageSize : TPageSize;
-    PageLength : byte;
-    LasPaginas : TList;
-    FCopias : integer;
-    FFuente : TFastFont;
-    FPort : string;
-    FLineas : integer;
-    FTransliterate : boolean;
-    PRNNormal : string;
-    PRNBold : string;
-    PRNWide : string;
-    PRNItalics : string;
-    PRNULineON : string;
-    PRNULineOFF : string;
-    PRNCompON : string;
-    PRNCompOFF : string;
-    PRNSetup : string;
-    PRNReset : string;
-    PRNSelLength : string;
+    Name: string;
+    PageSize: TPageSize;
+    PageLength: byte;
+    LasPaginas: TList;
+    FCopias: integer;
+    FFuente: TFastFont;
+    FPort: string;
+    FLineas: integer;
+    FTransliterate: boolean;
+    PRNNormal: string;
+    PRNBold: string;
+    PRNWide: string;
+    PRNItalics: string;
+    PRNULineON: string;
+    PRNULineOFF: string;
+    PRNCompON: string;
+    PRNCompOFF: string;
+    PRNSetup: string;
+    PRNReset: string;
+    PRNSelLength: string;
   end;
 
   TPrintThread = class(TThread)
   private
-    { Private declarations }
-    Job : PPrintJob;
-    Answer : integer;
-    Text : string;
+    Job: PPrintJob;
     procedure SetJobName;
-    procedure Ask;
+
   protected
     procedure Execute; override;
     function PrintFast(Number : integer) : boolean;
+
   public
-    RSPrinter : TRSPrinter;
-    Jobs : TThreadList;
+    RSPrinter: TRSPrinter;
+    Jobs: TThreadList;
   end;
 
   TRSPrintTray = class(TComponent)
   private
-    RSPrinter : TRSPrinter;
+    RSPrinter: TRSPrinter;
     FPopupMenuL: TPopupMenu;
     FIcon: TIcon;
     FTip: string;
@@ -147,88 +136,90 @@ type
     procedure DoPopup(i: integer);
     procedure TBChange;
     procedure SetTip(s: string);
-    procedure PauseClick(Sender : TObject);
-    procedure CancelClick(Sender : TObject);
-    procedure CancelAllClick(Sender : TObject);
+    procedure PauseClick(Sender: TObject);
+    procedure CancelClick(Sender: TObject);
+    procedure CancelAllClick(Sender: TObject);
+
   protected
     procedure WndProc(var Msg: TMessage);
     procedure DoOnLeftClick; virtual;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
   published
     property Tip: string read FTip write SetTip;
   end;
+
   TRSPrinterPreview = (ppYes,ppNo);
 
   TRSPrinter = class(TComponent)
   private
-    { Private declarations }
-    FOwner : TForm;
-    fOnPrinterError : TNotifyEvent;
-    FDatosEmpresa : String;      // INFORMACION QUE SE IMPRIME EN TODOS LOS REPORTES
-    FModelo : TPrinterModel;           // MODELO DE IMPRESORA
-    FFastPuerto : string;         // PUERTO DE LA IMPRESORA
-    FLineas : byte;              // CANTIDAD DE LINEAS POR PAGINA
-    FColumnas : byte;            // CANTIDAD DE COLUMNAS EN LA PAGINA
-    FFuente : TFastFont;         // TIPO DE LETRA
-    FModo : TPrinterMode;        // MODO DE IMPRESION (NORMAL/MEJORADO)
-    LasPaginas : TList;             // Almacenamiento de las páginas
-    FCopias : integer;
-    FWinSupMargin : integer;     // MARGEN SUPERIOR PARA EL MODO WINDOWS
-    FWinBotMargin : integer;     // MARGEN INFERIOR PARA EL MODO WINDOWS
-    PRNNormal : string;
-    PRNBold : string;
-    PRNWide : string;
-    PRNItalics : string;
-    PRNULineON : string;
-    PRNULineOFF : string;
-    PRNCompON : string;
-    PRNCompOFF : string;
-    PRNSetup : string;
-    PRNReset : string;
-    PRNSelLength : string;
-    PaginaActual : Integer;
-    FPreview : TRSPrinterPreview;
-    FZoom : TInitialZoom;
-    FTitulo : string;
-    PreviewForm : TForm;
-    FWinPrinter : string;        // NOMBRE DE LA IMPRESORA EN WINDOWS
-    FWinPort : string;
-    FTransliterate : Boolean;
-    FWinFont : string;
-    OldCloseQuery : procedure (Sender: TObject; var CanClose: Boolean) of object;
-    TrayIcon : TRSPrintTray;
-    PrintThread : TPrintThread;
-    FPageSize : TPageSize;
-    FPageLength : byte;
-    FReportName : String;
+    FOwner: TForm;
+    fOnPrinterError: TNotifyEvent;
+    FDatosEmpresa: String;      // INFORMACION QUE SE IMPRIME EN TODOS LOS REPORTES
+    FModelo: TPrinterModel;           // MODELO DE IMPRESORA
+    FFastPuerto: string;         // PUERTO DE LA IMPRESORA
+    FLineas: byte;              // CANTIDAD DE LINEAS POR PAGINA
+    FColumnas: byte;            // CANTIDAD DE COLUMNAS EN LA PAGINA
+    FFuente: TFastFont;         // TIPO DE LETRA
+    FModo: TPrinterMode;        // MODO DE IMPRESION (NORMAL/MEJORADO)
+    LasPaginas: TList;             // Almacenamiento de las páginas
+    FCopias: integer;
+    FWinSupMargin: integer;     // MARGEN SUPERIOR PARA EL MODO WINDOWS
+    FWinBotMargin: integer;     // MARGEN INFERIOR PARA EL MODO WINDOWS
+    PRNNormal: string;
+    PRNBold: string;
+    PRNWide: string;
+    PRNItalics: string;
+    PRNULineON: string;
+    PRNULineOFF: string;
+    PRNCompON: string;
+    PRNCompOFF: string;
+    PRNSetup: string;
+    PRNReset: string;
+    PRNSelLength: string;
+    PaginaActual: Integer;
+    FPreview: TRSPrinterPreview;
+    FZoom: TInitialZoom;
+    FTitulo: string;
+    PreviewForm: TForm;
+    FWinPrinter: string;        // NOMBRE DE LA IMPRESORA EN WINDOWS
+    FWinPort: string;
+    FTransliterate: Boolean;
+    FWinFont: string;
+    OldCloseQuery: procedure (Sender: TObject; var CanClose: Boolean) of object;
+    TrayIcon: TRSPrintTray;
+    PrintThread: TPrintThread;
+    FPageSize: TPageSize;
+    FPageLength: byte;
+    FReportName: String;
     FSaveConfToRegistry: boolean;
-    FContinuousJump : byte;
-    Cancelado : boolean;
+    FContinuousJump: byte;
+    Cancelado: boolean;
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     function GetModelRealName(Model : TPrinterModel) : String;
-    procedure SetModel(Name : TPrinterModel);
-    procedure SetFastPuerto(Puerto : string);
-    function GetPaginas : integer;
+    procedure SetModel(Name: TPrinterModel);
+    procedure SetFastPuerto(Puerto: string);
+    function GetPaginas: integer;
     procedure Clear;
-    procedure PrintThreadTerminate(Sender : TObject);
-    procedure BtnCancelarClick(Sender : TObject);
+    procedure PrintThreadTerminate(Sender: TObject);
+    procedure BtnCancelarClick(Sender: TObject);
+
   protected
-    { Protected declarations }
     procedure Loaded; override;
+
   public
-    { Public declarations }
-    GridFrm : TForm;
-    Fonts : TStringList;
-//    PaginaActual : byte;        // PAGINA ACTUAL
+    GridFrm: TForm;
+    Fonts: TStringList;
     PageNo: Integer;
-    PageWidth,             // ANCHO DE PAGINA EN PIXELS
-    PageHeight : integer;  // ALTO DE PAGINA EN PIXELS
-    PageWidthP,            // ANCHO DE PAGINA EN PULGADAS
-    PageHeightP : double;  // ALTO DE PAGINA EN PULGADAS
-    PageOrientation : TPrinterOrientation; // ORIENTACION DE LA PAGINA
-    ReGenerate : Procedure of object;
+    PageWidth: Integer;         // ANCHO DE PAGINA EN PIXELS
+    PageHeight: Integer;  // ALTO DE PAGINA EN PIXELS
+    PageWidthP: Double;        // ANCHO DE PAGINA EN PULGADAS
+    PageHeightP: Double;  // ALTO DE PAGINA EN PULGADAS
+    PageOrientation: TPrinterOrientation; // ORIENTACION DE LA PAGINA
+    ReGenerate: Procedure of object;
     CurrentlyPrinting : boolean;
     procedure PreviewReal;                            // MUESTRA LA IMPRESION EN PANTALLA
     procedure CancelAllPrinting;
@@ -239,9 +230,9 @@ type
     destructor Destroy; override;
     procedure BeginDoc;  // PARA COMENZAR UNA NUEVA IMPRESION
     procedure EndDoc; // ELIMINA LA INFORMACION DE LAS PAGINAS AL FINALIZAR
-    procedure Write(Line,Col : byte; Text:string); // ESCRIBE UN TEXTO EN LA PAGINA
-    procedure WriteFont(Line,Col : byte; Text:string;Font : TFastFont); // ESCRIBE UN TEXTO EN LA PAGINA
-    procedure DrawMetafile(Col,Line : single; Picture : TMetafile); // Hace un dibujo
+    procedure Write(Line, Col: byte; Text: string); // ESCRIBE UN TEXTO EN LA PAGINA
+    procedure WriteFont(Line, Col: byte; Text: string; Font: TFastFont); // ESCRIBE UN TEXTO EN LA PAGINA
+    procedure DrawMetafile(Col, Line: single; Picture: TMetafile); // Hace un dibujo
     procedure Box(Line1,Col1,Line2,Col2 : byte; Kind : TLineType);                // ESCRIBE UN RECTANGULO
     procedure LineH(Line,Col1,Col2 : byte; Kind : TLineType);           // ESCRIBE UNA LINEA HORIZONTAL
     procedure LineV(Line1,Line2,Col : byte; Kind : TLineType);             // ESCRIBE UNA LINEA VERTICAL
@@ -258,8 +249,8 @@ type
     function GetPrintingHeight : integer;
     property WinPrinter : string read fWinPrinter write fWinPrinter;
     property WinPort : string read fWinPort write fWinPort;
+
   published
-    { Published declarations }
     property PageContinuousJump : byte read FContinuousJump write FContinuousJump default 5;
     property PageSize : TPageSize read FPageSize write FPageSize;
     property PageLength : byte read FPageLength write FPageLength;
@@ -282,15 +273,14 @@ type
     property Transliterate : boolean read FTransliterate write FTransliterate default True;
     property WinMarginTop : integer read FWinSupMargin write FWinSupMargin default 0;
     property WinMarginBottom : integer read FWinBotMargin write FWinBotMargin default 0;
-//    property WinFont : string read FWinFont write FWinFont;
   end;
 
-  TTbPreviewType = (pYes,pNo,pDefault);
-  TRSPrinterMode = (rmFast,rmWindows,rmDefault);
+  TTbPreviewType = (pYes, pNo, pDefault);
+  TRSPrinterMode = (rmFast, rmWindows, rmDefault);
 
   TTbProcedure = procedure of object;
 
-  TTbGetTextEvent = procedure(var Text : string) of object;
+  TTbGetTextEvent = procedure(var Text: string) of object;
 
 procedure Register;
 
@@ -303,14 +293,14 @@ var
   PrintingCanceled: boolean;
   PrintingCancelAll: boolean;
   PrintingPaused: boolean;
-  PrintingJobName : string;
+  PrintingJobName: string;
 
 procedure Register;
 begin
   RegisterComponents('RS Componentes', [TRSPrinter]);
 end;
 
-function Min(Val1,Val2 : integer):integer;
+function Min(Val1, Val2: Integer):integer;
 begin
   if Val1<Val2 then
     Min := Val1
@@ -318,13 +308,12 @@ begin
     Min := Val2;
 end;
 
-
 function Spaces(N : integer) : string;
 var
-  S : string;
+  S: string;
 begin
   S := '';
-  While Length(S)<N do
+  while Length(S) < N do
     S := S + ' ';
   Spaces := S;
 end;
@@ -333,16 +322,20 @@ end;
 
 constructor TRSPrinter.Create(AOwner: TComponent);
 var
-  ADevice, ADriver, APort : array [0..255] of char;
-  DeviceMode : THandle;
+  ADevice: array [0..255] of Char;
+  ADriver: array [0..255] of Char;
+  APort: array [0..255] of Char;
+  DeviceMode: THandle;
 begin
   inherited Create(AOwner);
+
   if (AOwner is TForm) and not (CsDesigning in ComponentState) then
-    begin
-      FOwner := TForm(AOwner);
-      OldCloseQuery := TForm(AOwner).OnCloseQuery;
-      TForm(AOwner).OnCloseQuery := FormCloseQuery;
-    end;
+  begin
+    FOwner := TForm(AOwner);
+    OldCloseQuery := TForm(AOwner).OnCloseQuery;
+    TForm(AOwner).OnCloseQuery := FormCloseQuery;
+  end;
+
   PrintThread := nil;
   SetModel(EPSON_FX);
   SetFastPuerto('LPT1');
@@ -355,18 +348,20 @@ begin
   FPageSize := pzLegal;
   FContinuousJump := 5;
   LasPaginas := TList.Create;
+
   if (Printer <> nil) and (Printer.Printers.Count > 0) then
-    begin
-      PageOrientation := Printer.Orientation;
-      PageWidth := GetDeviceCaps(Printer.Handle, PHYSICALWIDTH);
-      PageHeight := GetDeviceCaps(Printer.Handle, PHYSICALHEIGHT);
-      PageWidthP := PageWidth/GetDeviceCaps(Printer.Handle, LOGPIXELSX);
-      PageHeightP := PageHeight/GetDeviceCaps(Printer.Handle, LOGPIXELSY);
-      Lines := Trunc(PageHeightP*6)-4;
-      Printer.GetPrinter(ADevice, ADriver, APort, DeviceMode);
-      WinPort := APort;
-      WinPrinter := ADevice;
-    end;
+  begin
+    PageOrientation := Printer.Orientation;
+    PageWidth := GetDeviceCaps(Printer.Handle, PHYSICALWIDTH);
+    PageHeight := GetDeviceCaps(Printer.Handle, PHYSICALHEIGHT);
+    PageWidthP := PageWidth/GetDeviceCaps(Printer.Handle, LOGPIXELSX);
+    PageHeightP := PageHeight/GetDeviceCaps(Printer.Handle, LOGPIXELSY);
+    Lines := Trunc(PageHeightP*6)-4;
+    Printer.GetPrinter(ADevice, ADriver, APort, DeviceMode);
+    WinPort := APort;
+    WinPrinter := ADevice;
+  end;
+
   ReGenerate := nil;
   FTransliterate := True;
   FWinFont := 'courier new';
@@ -375,8 +370,10 @@ end;
 destructor TRSPrinter.Destroy;
 begin
   Clear;
+
   if not (CsDesigning in ComponentState) then
     FOwner.OnCloseQuery := OldCloseQuery;
+
   inherited Destroy;
 end;
 
@@ -387,248 +384,262 @@ end;
 
 procedure TRSPrinter.Clear;
 var
-  Pag : PPage;
-  HLin : PHorizLine;
-  VLin : PVertLine;
-  Esc : PWrite;
-  Graf : PGraphic;
+  Pag: PPage;
+  HLin: PHorizLine;
+  VLin: PVertLine;
+  Esc: PWrite;
+  Graf: PGraphic;
 begin
-  While LasPaginas.Count > 0 do
+  while LasPaginas.Count > 0 do
+  begin
+    Application.ProcessMessages;
+    Pag := LasPaginas.Items[0];
+    while Pag.Writed.Count > 0 do
     begin
-      Application.ProcessMessages;
-      Pag := LasPaginas.Items[0];
-      While Pag.Writed.Count > 0 do
-        begin
-          Esc := Pag.Writed.Items[0];
-          Dispose(Esc);
-          Pag.Writed.Delete(0);
-          Pag.Writed.Pack;
-        end;
-      Pag.Writed.Free;
-      Application.ProcessMessages;
-      While Pag.HorizLines.Count > 0 do
-        begin
-          HLin := Pag.HorizLines.Items[0];
-          Dispose(HLin);
-          Pag.HorizLines.Delete(0);
-          Pag.HorizLines.Pack;
-        end;
-      Application.ProcessMessages;
-      While Pag.VerticalLines.Count > 0 do
-        begin
-          VLin := Pag.VerticalLines.Items[0];
-          Dispose(VLin);
-          Pag.VerticalLines.Delete(0);
-          Pag.VerticalLines.Pack;
-        end;
-      Pag.VerticalLines.Free;
-      Application.ProcessMessages;
-      While Pag.Graphics.Count > 0 do
-        begin
-          Graf := Pag.Graphics[0];
-          Graf^.Picture.Free;
-          Dispose(Graf);
-          Pag.Graphics.Delete(0);
-          Pag.Graphics.Pack;
-        end;
-      Pag.Graphics.Free;
-      Dispose(Pag);
-      LasPaginas.Delete(0);
-      LasPaginas.Pack;
+      Esc := Pag.Writed.Items[0];
+      Dispose(Esc);
+      Pag.Writed.Delete(0);
+      Pag.Writed.Pack;
     end;
+    Pag.Writed.Free;
+
+    Application.ProcessMessages;
+    while Pag.HorizLines.Count > 0 do
+    begin
+      HLin := Pag.HorizLines.Items[0];
+      Dispose(HLin);
+      Pag.HorizLines.Delete(0);
+      Pag.HorizLines.Pack;
+    end;
+
+    Application.ProcessMessages;
+    while Pag.VerticalLines.Count > 0 do
+    begin
+      VLin := Pag.VerticalLines.Items[0];
+      Dispose(VLin);
+      Pag.VerticalLines.Delete(0);
+      Pag.VerticalLines.Pack;
+    end;
+    Pag.VerticalLines.Free;
+
+    Application.ProcessMessages;
+    while Pag.Graphics.Count > 0 do
+    begin
+      Graf := Pag.Graphics[0];
+      Graf^.Picture.Free;
+      Dispose(Graf);
+      Pag.Graphics.Delete(0);
+      Pag.Graphics.Pack;
+    end;
+    Pag.Graphics.Free;
+
+    Dispose(Pag);
+    LasPaginas.Delete(0);
+    LasPaginas.Pack;
+  end;
 end;
 
 procedure TRSPrinter.SetModel(Name : TPrinterModel);
 var
-  Nombre : TPrinterModel;
+  Nombre: TPrinterModel;
 begin
   Nombre := Name;
   FModelo := Nombre;
-  Case Nombre of
+
+  case Nombre of
     Cannon_F60 :
-      begin
-        PRNNormal := '27 70 27 54 00';
-        PRNBold := '27 69';
-        PRNWide := '27 87 01';
-        PRNItalics := '27 54 01';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 70 27 54 00';
+      PRNBold := '27 69';
+      PRNWide := '27 87 01';
+      PRNItalics := '27 54 01';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     Cannon_Laser :
-      begin
-        PRNNormal := '27 38';
-        PRNBold := '27 79';
-        PRNWide := '27 87 01';
-        PRNItalics := '';
-        PRNULineON := '27 69';
-        PRNULineOFF := '27 82';
-        PRNCompON := '27 31 09';
-        PRNCompOFF := '27 31 13';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 38';
+      PRNBold := '27 79';
+      PRNWide := '27 87 01';
+      PRNItalics := '';
+      PRNULineON := '27 69';
+      PRNULineOFF := '27 82';
+      PRNCompON := '27 31 09';
+      PRNCompOFF := '27 31 13';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     HP_Deskjet :
-      begin
-        PRNNormal := '27 40 115 48 66 27 40 115 48 83';
-        PRNBold := '27 40 115 51 66';
-        PRNWide := '27 87 01';
-        PRNItalics := '27 40 115 49 83';
-        PRNULineON := '27 38 100 48 68';
-        PRNULineOFF := '27 38 100 64';
-        PRNCompON := '27 40 115 49 54 46 54 72';
-        PRNCompOFF := '27 40 115 49 48 72';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 40 115 48 66 27 40 115 48 83';
+      PRNBold := '27 40 115 51 66';
+      PRNWide := '27 87 01';
+      PRNItalics := '27 40 115 49 83';
+      PRNULineON := '27 38 100 48 68';
+      PRNULineOFF := '27 38 100 64';
+      PRNCompON := '27 40 115 49 54 46 54 72';
+      PRNCompOFF := '27 40 115 49 48 72';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     HP_Laserjet :
-      begin
-        PRNNormal := '27 40 115 48 66 27 40 115 48 83';
-        PRNBold := '27 40 115 53 66';
-        PRNWide := '27 87 01';
-        PRNItalics := '27 40 115 49 83';
-        PRNULineON := '27 38 100 68';
-        PRNULineOFF := '27 38 100 64';
-        PRNCompON := '27 40 115 49 54 46 54 72';
-        PRNCompOFF := '27 40 115 49 48 72';
-        PRNSetup := '';
-        PRNReset := '12';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 40 115 48 66 27 40 115 48 83';
+      PRNBold := '27 40 115 53 66';
+      PRNWide := '27 87 01';
+      PRNItalics := '27 40 115 49 83';
+      PRNULineON := '27 38 100 68';
+      PRNULineOFF := '27 38 100 64';
+      PRNCompON := '27 40 115 49 54 46 54 72';
+      PRNCompOFF := '27 40 115 49 48 72';
+      PRNSetup := '';
+      PRNReset := '12';
+      PRNSelLength := '27 67';
+    end;
+
     HP_Thinkjet :
-      begin
-        PRNNormal := '27 70';
-        PRNBold := '27 69';
-        PRNWide := '27 87 01';
-        PRNItalics := '';
-        PRNULineON := '27 45 49';
-        PRNULineOFF := '27 45 48';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 70';
+      PRNBold := '27 69';
+      PRNWide := '27 87 01';
+      PRNItalics := '';
+      PRNULineON := '27 45 49';
+      PRNULineOFF := '27 45 48';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     IBM_Color_Jet :
-      begin
-        PRNNormal := '27 72';
-        PRNBold := '27 71';
-        PRNWide := '27 87 01';
-        PRNItalics := '';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 72';
+      PRNBold := '27 71';
+      PRNWide := '27 87 01';
+      PRNItalics := '';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     IBM_PC_Graphics :
-      begin
-        PRNNormal := '27 70 27 55';
-        PRNBold := '27 69';
-        PRNWide := '27 87 01';
-        PRNItalics := '27 54';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 70 27 55';
+      PRNBold := '27 69';
+      PRNWide := '27 87 01';
+      PRNItalics := '27 54';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     IBM_Proprinter :
-      begin
-        PRNNormal := '27 70';
-        PRNBold := '27 69';
-        PRNWide := '27 87 01';
-        PRNItalics := '';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 70';
+      PRNBold := '27 69';
+      PRNWide := '27 87 01';
+      PRNItalics := '';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     NEC_3500 :
-      begin
-        PRNNormal := '27 72';
-        PRNBold := '27 71';
-        PRNWide := '27 87 01';
-        PRNItalics := '';
-        PRNULineON := '27 45';
-        PRNULineOFF := '27 39';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 72';
+      PRNBold := '27 71';
+      PRNWide := '27 87 01';
+      PRNItalics := '';
+      PRNULineON := '27 45';
+      PRNULineOFF := '27 39';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     NEC_Pinwriter:
-      begin
-        PRNNormal := '27 70 27 53';
-        PRNBold := '27 69';
-        PRNWide := '27 87 01';
-        PRNItalics := '27 52';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 70 27 53';
+      PRNBold := '27 69';
+      PRNWide := '27 87 01';
+      PRNItalics := '27 52';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '';
+      PRNSelLength := '27 67';
+    end;
+
     Epson_Stylus:
-      begin
-        PRNNormal := '27 70 27 53 27 45 00';
-        PRNBold := '27 69';
-        PRNWide := '27 87 01';
-        PRNItalics := '27 52';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '27 70 15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '27 64';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 70 27 53 27 45 00';
+      PRNBold := '27 69';
+      PRNWide := '27 87 01';
+      PRNItalics := '27 52';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '27 70 15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '27 64';
+      PRNSelLength := '27 67';
+    end;
+
     Mp20Mi:
-      begin
-        PRNNormal := '27 77';
-        PRNBold := '27 69';
-        PRNWide := '27 87 01';
-        PRNItalics := '27 52';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '27 15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '27 64';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 77';
+      PRNBold := '27 69';
+      PRNWide := '27 87 01';
+      PRNItalics := '27 52';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '27 15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '27 64';
+      PRNSelLength := '27 67';
+    end;
     else
-//  Epson_FX :
-      begin
-        PRNNormal := '27 70 27 53';
-        PRNBold := '27 69';
-//        PRNWide := '27 87 01';
-        PRNWide := '27 14';
-        PRNItalics := '27 52';
-        PRNULineON := '27 45 01';
-        PRNULineOFF := '27 45 00';
-        PRNCompON := '15';
-        PRNCompOFF := '18';
-        PRNSetup := '';
-        PRNReset := '27 64';
-        PRNSelLength := '27 67';
-      end;
+    begin
+      PRNNormal := '27 70 27 53';
+      PRNBold := '27 69';
+      PRNWide := '27 14';
+      PRNItalics := '27 52';
+      PRNULineON := '27 45 01';
+      PRNULineOFF := '27 45 00';
+      PRNCompON := '15';
+      PRNCompOFF := '18';
+      PRNSetup := '';
+      PRNReset := '27 64';
+      PRNSelLength := '27 67';
+    end;
   end;
 end;
 
@@ -656,32 +667,35 @@ end;
 
 procedure TRSPrinter.WriteFont(Line,Col : byte; Text:string;Font : TFastFont); // ESCRIBE UN TEXTO EN LA PAGINA
 var
-  Txt : PWrite;
-  Pag : PPage;
-  P : integer;
+  Txt: PWrite;
+  Pag: PPage;
+  P: integer;
 begin
   if LasPaginas.Count > 0 then
     begin
       Pag := LasPaginas.Items[PaginaActual];
       P := 0;
-      if Pag.Writed.Count>0 then
+
+      if Pag.Writed.Count > 0 then
+      begin
+        Txt := Pag.Writed.Items[0];
+        while (P<Pag.Writed.Count) and
+              ((Txt^.Line < Line) or
+              ((Txt^.Line = Line)and(Txt^.Col<=Col))) do
         begin
-          Txt := Pag.Writed.Items[0];
-          While (P<Pag.Writed.Count) and
-                ((Txt^.Line < Line) or
-                ((Txt^.Line = Line)and(Txt^.Col<=Col))) do
-            begin
-              Inc(P);
-              if P<Pag.Writed.Count then
-                Txt := Pag.Writed.Items[P];
-            end;
+          Inc(P);
+          if P<Pag.Writed.Count then
+            Txt := Pag.Writed.Items[P];
         end;
+      end;
+
       New(Txt);
       Pag.Writed.Insert(P,Txt);
       Txt^.Col := Col;
       Txt^.Line := Line;
       Txt^.Text := Text;
       Txt^.FastFont := Font;
+
       if Line > Pag.PrintedLines then
         Pag.PrintedLines := Line;
     end;
@@ -689,130 +703,134 @@ end;
 
 procedure TRSPrinter.Write(Line,Col : byte; Text:string); // ESCRIBE UN TEXTO EN LA PAGINA
 var
-  Txt : PWrite;
-  Pag : PPage;
-  P : integer;
+  Txt: PWrite;
+  Pag: PPage;
+  P: integer;
 begin
   if LasPaginas.Count > 0 then
+  begin
+    Pag := LasPaginas.Items[PaginaActual];
+    P := 0;
+
+    if Pag.Writed.Count>0 then
     begin
-      Pag := LasPaginas.Items[PaginaActual];
-      P := 0;
-      if Pag.Writed.Count>0 then
-        begin
-          Txt := Pag.Writed.Items[0];
-          While (P<Pag.Writed.Count) and
-                ((Txt^.Line < Line) or
-                ((Txt^.Line = Line)and(Txt^.Col<=Col))) do
-            begin
-              Inc(P);
-              if P<Pag.Writed.Count then
-                Txt := Pag.Writed.Items[P];
-            end;
-        end;
-      New(Txt);
-      Pag.Writed.Insert(P,Txt);
-      Txt^.Col := Col;
-      Txt^.Line := Line;
-      Txt^.Text := Text;
-      Txt^.FastFont := FFuente;
-      if Line > Pag.PrintedLines then
-        Pag.PrintedLines := Line;
+      Txt := Pag.Writed.Items[0];
+      while (P<Pag.Writed.Count) and
+            ((Txt^.Line < Line) or
+            ((Txt^.Line = Line)and(Txt^.Col<=Col))) do
+      begin
+        Inc(P);
+        if P<Pag.Writed.Count then
+          Txt := Pag.Writed.Items[P];
+      end;
     end;
+
+    New(Txt);
+    Pag.Writed.Insert(P,Txt);
+    Txt^.Col := Col;
+    Txt^.Line := Line;
+    Txt^.Text := Text;
+    Txt^.FastFont := FFuente;
+    if Line > Pag.PrintedLines then
+      Pag.PrintedLines := Line;
+  end;
 end;
 
 procedure TRSPrinter.DrawMetafile(Col,Line : single; Picture : TMetafile); // Hace un dibujo
 var
-  Pag : PPage;
-  Dib : TPicture;
-  Graf : PGraphic;
+  Pag: PPage;
+  Dib: TPicture;
+  Graf: PGraphic;
 begin
   if LasPaginas.Count > 0 then
-    begin
-      Pag := LasPaginas.Items[PaginaActual];
-      Dib := TPicture.Create;
-      New(Graf);
-      Graf^.Col := Col;
-      Graf^.Line := Line;
-      Graf^.Picture := Dib;
-      Dib.Metafile.Assign(Picture);
-      Pag^.Graphics.Add(Graf);
-    end;
+  begin
+    Pag := LasPaginas.Items[PaginaActual];
+    Dib := TPicture.Create;
+    New(Graf);
+    Graf^.Col := Col;
+    Graf^.Line := Line;
+    Graf^.Picture := Dib;
+    Dib.Metafile.Assign(Picture);
+    Pag^.Graphics.Add(Graf);
+  end;
 end;
 
 procedure TRSPrinter.Box(Line1,Col1,Line2,Col2 : byte; Kind : TLineType);// ESCRIBE UN RECTANGULO
 var
-  Pag : PPage;
-  VLine : PVertLine;
-  HLine : PHorizLine;
+  Pag: PPage;
+  VLine: PVertLine;
+  HLine: PHorizLine;
 begin
   if LasPaginas.Count > 0 then
-    begin
-      Pag := LasPaginas.Items[PaginaActual];
-      New(VLine);
-      VLine^.Col := Col1;
-      VLine^.Line1 := Line1;
-      VLine^.Line2 := Line2;
-      VLine^.Kind := Kind;
-      Pag^.VerticalLines.Add(VLine);
-      New(VLine);
-      VLine^.Col := Col2;
-      VLine^.Line1 := Line1;
-      VLine^.Line2 := Line2;
-      VLine^.Kind := Kind;
-      Pag^.VerticalLines.Add(VLine);
-      New(HLine);
-      HLine^.Col1 := Col1;
-      HLine^.Col2 := Col2;
-      HLine^.Line := Line1;
-      HLine^.Kind := Kind;
-      Pag^.HorizLines.Add(HLine);
-      New(HLine);
-      HLine^.Col1 := Col1;
-      HLine^.Col2 := Col2;
-      HLine^.Line := Line2;
-      HLine^.Kind := Kind;
-      Pag^.HorizLines.Add(HLine);
-      if Line2 > Pag^.PrintedLines then
-        Pag^.PrintedLines := Line2;
-    end;
+  begin
+    Pag := LasPaginas.Items[PaginaActual];
+    New(VLine);
+    VLine^.Col := Col1;
+    VLine^.Line1 := Line1;
+    VLine^.Line2 := Line2;
+    VLine^.Kind := Kind;
+    Pag^.VerticalLines.Add(VLine);
+    New(VLine);
+    VLine^.Col := Col2;
+    VLine^.Line1 := Line1;
+    VLine^.Line2 := Line2;
+    VLine^.Kind := Kind;
+    Pag^.VerticalLines.Add(VLine);
+    New(HLine);
+    HLine^.Col1 := Col1;
+    HLine^.Col2 := Col2;
+    HLine^.Line := Line1;
+    HLine^.Kind := Kind;
+    Pag^.HorizLines.Add(HLine);
+    New(HLine);
+    HLine^.Col1 := Col1;
+    HLine^.Col2 := Col2;
+    HLine^.Line := Line2;
+    HLine^.Kind := Kind;
+    Pag^.HorizLines.Add(HLine);
+    if Line2 > Pag^.PrintedLines then
+      Pag^.PrintedLines := Line2;
+  end;
 end;
 
 procedure TRSPrinter.LineH(Line,Col1,Col2 : byte; Kind : TLineType); // ESCRIBE UNA LINEA HORIZONTAL
 var
-  HLine : PHorizLine;
-  Pag : PPage;
+  HLine: PHorizLine;
+  Pag: PPage;
 begin
   if LasPaginas.Count > 0 then
-    begin
-      Pag := LasPaginas.Items[PaginaActual];
-      New(HLine);
-      Pag.HorizLines.Add(HLine);
-      HLine^.Col1 := Col1;
-      HLine^.Col2 := Col2;
-      HLine^.Line := Line;
-      HLine^.Kind := Kind;
-      if Line > Pag^.PrintedLines then
-        Pag^.PrintedLines := Line;
-    end;
+  begin
+    Pag := LasPaginas.Items[PaginaActual];
+    New(HLine);
+    Pag.HorizLines.Add(HLine);
+    HLine^.Col1 := Col1;
+    HLine^.Col2 := Col2;
+    HLine^.Line := Line;
+    HLine^.Kind := Kind;
+
+    if Line > Pag^.PrintedLines then
+      Pag^.PrintedLines := Line;
+  end;
 end;
 
 procedure TRSPrinter.LineV(Line1,Line2,Col : byte; Kind : TLineType);             // ESCRIBE UNA LINEA VERTICAL
 var
-  VLine : PVertLine;
-  Pag : PPage;
+  VLine: PVertLine;
+  Pag: PPage;
 begin
   if LasPaginas.Count > 0 then
-    begin
-      Pag := LasPaginas.Items[PaginaActual];
-      New(VLine);
-      Pag.VerticalLines.Add(VLine);
-      VLine^.Col := Col;
-      VLine^.Line1 := Line1;
-      VLine^.Line2 := Line2;
-      VLine^.Kind := Kind;
-      if Line2 > Pag^.PrintedLines then
-        Pag^.PrintedLines := Line2;
-    end;
+  begin
+    Pag := LasPaginas.Items[PaginaActual];
+    New(VLine);
+    Pag.VerticalLines.Add(VLine);
+    VLine^.Col := Col;
+    VLine^.Line1 := Line1;
+    VLine^.Line2 := Line2;
+    VLine^.Kind := Kind;
+
+    if Line2 > Pag^.PrintedLines then
+      Pag^.PrintedLines := Line2;
+  end;
 end;
 
 procedure TRSPrinter.PreviewReal;                            // MUESTRA LA IMPRESION EN PANTALLA
@@ -1222,92 +1240,97 @@ var
   Job : pPrintJob;
 begin
   if FModo = pmWindows then
-    begin
+  begin
+   try
+     Printer.Title := Title + ' (Página Nº'+' '+IntToStr(Number)+')';
+     Printer.Copies := fCopias;
+     Printer.BeginDoc;
+     Imagen := TMetaFile.Create;
+     Imagen.Width := 640; // PrintingWidth{PageWidth} div 4; // 640;
+     Imagen.Height := 12*Lines; //PrintingHeight{PageHeight} div 4; // 1056;
      try
-      Printer.Title := Title + ' (Página Nº'+' '+IntToStr(Number)+')';
-      Printer.Copies := fCopias;
-      Printer.BeginDoc;
-      Imagen := TMetaFile.Create;
-      Imagen.Width := 640; // PrintingWidth{PageWidth} div 4; // 640;
-      Imagen.Height := 12*Lines; //PrintingHeight{PageHeight} div 4; // 1056;
-      try
        BuildPage(Number,Imagen,True,pmWindows,False);
        Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
        Printer.EndDoc;
-      except
-      end;
-      Imagen.Free;
-      Resultado := True;
      except
-      Resultado := False;
      end;
-    end
+     Imagen.Free;
+     Resultado := True;
+   except
+     Resultado := False;
+   end;
+  end
   else
+  begin
+    LP := TList.Create;
+    New(Pag);
+    LP.Add(Pag);
+    Pag^.PrintedLines := PPage(LasPaginas[Number-1])^.PrintedLines + 1;
+    Pag^.Writed := TList.Create;
+    Pag^.VerticalLines := TList.Create;
+    Pag^.HorizLines := TList.Create;
+
+    for j := 0 to PPage(LasPaginas[Number-1])^.Writed.Count-1 do
     begin
-      LP := TList.Create;
-      New(Pag);
-      LP.Add(Pag);
-      Pag^.PrintedLines := PPage(LasPaginas[Number-1])^.PrintedLines + 1;
-      Pag^.Writed := TList.Create;
-      Pag^.VerticalLines := TList.Create;
-      Pag^.HorizLines := TList.Create;
-      for j := 0 to PPage(LasPaginas[Number-1])^.Writed.Count-1 do
-        begin
-          new(Esc);
-          Esc^ := pWrite(PPage(LasPaginas[Number-1])^.Writed[j])^;
-          Pag.Writed.Add(Esc);
-        end;
-      for j := 0 to PPage(LasPaginas[Number-1])^.VerticalLines.Count-1 do
-        begin
-          new(LV);
-          LV^ := pVertLine(PPage(LasPaginas[Number-1])^.VerticalLines[j])^;
-          Pag.VerticalLines.Add(LV);
-        end;
-      for j := 0 to PPage(LasPaginas[Number-1])^.HorizLines.Count-1 do
-        begin
-          new(LH);
-          LH^ := pHorizLine(PPage(LasPaginas[Number-1])^.HorizLines[j])^;
-          Pag.HorizLines.Add(LH);
-        end;
-      New(Job);
-      Job.Name := Title + 'Pág. '+IntToStr(Number-1);
-      Job.PageSize := PageSize;
-      Job.PageLength := PageLength;
-      Job.LasPaginas := LP;
-      Job.FCopias := Copies;
-      Job.FFuente := FastFont;
-      Job.FPort := FastPort;
-      Job.FLineas := Lines;
-      Job.FTransliterate := Transliterate;
-      Job.PRNNormal := PRNNormal;
-      Job.PRNBold := PRNBold;
-      Job.PRNWide := PRNWide;
-      Job.PRNItalics := PRNItalics;
-      Job.PRNULineON := PRNULineON;
-      Job.PRNULineOFF := PRNULineOFF;
-      Job.PRNCompON := PRNCompON;
-      Job.PRNCompOFF := PRNCompOFF;
-      Job.PRNSetup := PRNSetup;
-      Job.PRNReset := PRNReset;
-      Job.PRNSelLength := PRNSelLength;
-      if not CurrentlyPrinting then
-        begin
-          CurrentlyPrinting := True;
-          PrintThread := TPrintThread.Create(True);
-          PrintThread.RSPrinter := self;
-          PrintThread.Jobs := TThreadList.Create;
-          TrayIcon := TRSPrintTray.Create(self);
-          PrintingCanceled := False;
-          PrintingPaused:= False;
-          PrintingCancelAll := False;
-        end;
-      PrintThread.RSPrinter := self;
-      PrintThread.Jobs.Add(Job);
-      PrintThread.OnTerminate := PrintThreadTerminate;
-      PrintThread.FreeOnTerminate := True;
-      PrintThread.Resume;
-      Resultado := True;
+      new(Esc);
+      Esc^ := pWrite(PPage(LasPaginas[Number-1])^.Writed[j])^;
+      Pag.Writed.Add(Esc);
     end;
+
+    for j := 0 to PPage(LasPaginas[Number-1])^.VerticalLines.Count-1 do
+    begin
+      new(LV);
+      LV^ := pVertLine(PPage(LasPaginas[Number-1])^.VerticalLines[j])^;
+      Pag.VerticalLines.Add(LV);
+    end;
+
+    for j := 0 to PPage(LasPaginas[Number-1])^.HorizLines.Count-1 do
+    begin
+      new(LH);
+      LH^ := pHorizLine(PPage(LasPaginas[Number-1])^.HorizLines[j])^;
+      Pag.HorizLines.Add(LH);
+    end;
+
+    New(Job);
+    Job.Name := Title + 'Pág. '+IntToStr(Number-1);
+    Job.PageSize := PageSize;
+    Job.PageLength := PageLength;
+    Job.LasPaginas := LP;
+    Job.FCopias := Copies;
+    Job.FFuente := FastFont;
+    Job.FPort := FastPort;
+    Job.FLineas := Lines;
+    Job.FTransliterate := Transliterate;
+    Job.PRNNormal := PRNNormal;
+    Job.PRNBold := PRNBold;
+    Job.PRNWide := PRNWide;
+    Job.PRNItalics := PRNItalics;
+    Job.PRNULineON := PRNULineON;
+    Job.PRNULineOFF := PRNULineOFF;
+    Job.PRNCompON := PRNCompON;
+    Job.PRNCompOFF := PRNCompOFF;
+    Job.PRNSetup := PRNSetup;
+    Job.PRNReset := PRNReset;
+    Job.PRNSelLength := PRNSelLength;
+    if not CurrentlyPrinting then
+    begin
+      CurrentlyPrinting := True;
+      PrintThread := TPrintThread.Create(True);
+      PrintThread.RSPrinter := self;
+      PrintThread.Jobs := TThreadList.Create;
+      TrayIcon := TRSPrintTray.Create(self);
+      PrintingCanceled := False;
+      PrintingPaused:= False;
+      PrintingCancelAll := False;
+    end;
+    PrintThread.RSPrinter := self;
+    PrintThread.Jobs.Add(Job);
+    PrintThread.OnTerminate := PrintThreadTerminate;
+    PrintThread.FreeOnTerminate := True;
+    PrintThread.Resume;
+    Resultado := True;
+  end;
+
   PrintPage := Resultado;
 end;
 
@@ -1323,93 +1346,98 @@ var
   Job : PPrintJob;
 begin // IMPRIMIR
   if FModo = pmWindows then
-    begin
-      Printer.Title := Title;
-      Printer.Copies := FCopias;
-      Printer.BeginDoc;
-      Imagen := TMetaFile.Create;
-      Imagen.Width := 640; //PrintingWidth{PageWidth} div 4; // 640;
-      Imagen.Height := 12 * Lines; //PrintingHeight{PageHeight} div 4; // 1056;
-      BuildPage(1,Imagen,True,pmWindows,False);
-      Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
-      if LasPaginas.Count > 1 then
-        for i := 2 to LasPaginas.Count do
-          begin
-            Printer.NewPage;
-            BuildPage(i,Imagen,True,pmWindows,False);
-            Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
-          end;
-      Printer.EndDoc;
-      Imagen.Free;
-    end
+  begin
+    Printer.Title := Title;
+    Printer.Copies := FCopias;
+    Printer.BeginDoc;
+    Imagen := TMetaFile.Create;
+    Imagen.Width := 640; //PrintingWidth{PageWidth} div 4; // 640;
+    Imagen.Height := 12 * Lines; //PrintingHeight{PageHeight} div 4; // 1056;
+    BuildPage(1,Imagen,True,pmWindows,False);
+    Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
+    if LasPaginas.Count > 1 then
+      for i := 2 to LasPaginas.Count do
+      begin
+        Printer.NewPage;
+        BuildPage(i,Imagen,True,pmWindows,False);
+        Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
+      end;
+    Printer.EndDoc;
+    Imagen.Free;
+  end
   else
+  begin
+    LP := TList.Create;
+
+    for i := 0 to LasPaginas.Count-1 do
     begin
-      LP := TList.Create;
-      for i := 0 to LasPaginas.Count-1 do
-        begin
-          New(Pag);
-          LP.Add(Pag);
-          Pag^.PrintedLines := PPage(LasPaginas[i])^.PrintedLines + 1;
-          Pag^.Writed := TList.Create;
-          Pag^.VerticalLines := TList.Create;
-          Pag^.HorizLines := TList.Create;
-          for j := 0 to PPage(LasPaginas[i])^.Writed.Count-1 do
-            begin
-              new(Esc);
-              Esc^ := pWrite(PPage(LasPaginas[i])^.Writed[j])^;
-              Pag.Writed.Add(Esc);
-            end;
-          for j := 0 to PPage(LasPaginas[i])^.VerticalLines.Count-1 do
-            begin
-              new(LV);
-              LV^ := pVertLine(PPage(LasPaginas[i])^.VerticalLines[j])^;
-              Pag.VerticalLines.Add(LV);
-            end;
-          for j := 0 to PPage(LasPaginas[i])^.HorizLines.Count-1 do
-            begin
-              new(LH);
-              LH^ := pHorizLine(PPage(LasPaginas[i])^.HorizLines[j])^;
-              Pag.HorizLines.Add(LH);
-            end;
-        end;
-      New(Job);
-      Job.Name := Title;
-      Job.PageSize := PageSize;
-      Job.PageLength := PageLength;
-      Job.LasPaginas := LP;
-      Job.FCopias := Copies;
-      Job.FFuente := FastFont;
-      Job.FPort := FastPort;
-      Job.FLineas := Lines;
-      Job.FTransliterate := Transliterate;
-      Job.PRNNormal := PRNNormal;
-      Job.PRNBold := PRNBold;
-      Job.PRNWide := PRNWide;
-      Job.PRNItalics := PRNItalics;
-      Job.PRNULineON := PRNULineON;
-      Job.PRNULineOFF := PRNULineOFF;
-      Job.PRNCompON := PRNCompON;
-      Job.PRNCompOFF := PRNCompOFF;
-      Job.PRNSetup := PRNSetup;
-      Job.PRNReset := PRNReset;
-      Job.PRNSelLength := PRNSelLength;
-      if not CurrentlyPrinting then
-        begin
-          CurrentlyPrinting := True;
-          PrintThread := TPrintThread.Create(True);
-          PrintThread.RSPrinter := self;
-          PrintThread.Jobs := TThreadList.Create;
-          TrayIcon := TRSPrintTray.Create(Owner);
-          PrintingCanceled := False;
-          PrintingPaused := False;
-          PrintingCancelAll := False;
-        end;
-      PrintThread.RSPrinter := self;
-      PrintThread.Jobs.Add(Job);
-      PrintThread.OnTerminate := PrintThreadTerminate;
-      PrintThread.FreeOnTerminate := True;
-      PrintThread.Resume;
+      New(Pag);
+      LP.Add(Pag);
+      Pag^.PrintedLines := PPage(LasPaginas[i])^.PrintedLines + 1;
+      Pag^.Writed := TList.Create;
+      Pag^.VerticalLines := TList.Create;
+      Pag^.HorizLines := TList.Create;
+
+      for j := 0 to PPage(LasPaginas[i])^.Writed.Count-1 do
+      begin
+        new(Esc);
+        Esc^ := pWrite(PPage(LasPaginas[i])^.Writed[j])^;
+        Pag.Writed.Add(Esc);
+      end;
+
+      for j := 0 to PPage(LasPaginas[i])^.VerticalLines.Count-1 do
+      begin
+        new(LV);
+        LV^ := pVertLine(PPage(LasPaginas[i])^.VerticalLines[j])^;
+        Pag.VerticalLines.Add(LV);
+      end;
+
+      for j := 0 to PPage(LasPaginas[i])^.HorizLines.Count-1 do
+      begin
+        new(LH);
+        LH^ := pHorizLine(PPage(LasPaginas[i])^.HorizLines[j])^;
+        Pag.HorizLines.Add(LH);
+      end;
     end;
+
+    New(Job);
+    Job.Name := Title;
+    Job.PageSize := PageSize;
+    Job.PageLength := PageLength;
+    Job.LasPaginas := LP;
+    Job.FCopias := Copies;
+    Job.FFuente := FastFont;
+    Job.FPort := FastPort;
+    Job.FLineas := Lines;
+    Job.FTransliterate := Transliterate;
+    Job.PRNNormal := PRNNormal;
+    Job.PRNBold := PRNBold;
+    Job.PRNWide := PRNWide;
+    Job.PRNItalics := PRNItalics;
+    Job.PRNULineON := PRNULineON;
+    Job.PRNULineOFF := PRNULineOFF;
+    Job.PRNCompON := PRNCompON;
+    Job.PRNCompOFF := PRNCompOFF;
+    Job.PRNSetup := PRNSetup;
+    Job.PRNReset := PRNReset;
+    Job.PRNSelLength := PRNSelLength;
+    if not CurrentlyPrinting then
+      begin
+        CurrentlyPrinting := True;
+        PrintThread := TPrintThread.Create(True);
+        PrintThread.RSPrinter := self;
+        PrintThread.Jobs := TThreadList.Create;
+        TrayIcon := TRSPrintTray.Create(Owner);
+        PrintingCanceled := False;
+        PrintingPaused := False;
+        PrintingCancelAll := False;
+      end;
+    PrintThread.RSPrinter := self;
+    PrintThread.Jobs.Add(Job);
+    PrintThread.OnTerminate := PrintThreadTerminate;
+    PrintThread.FreeOnTerminate := True;
+    PrintThread.Resume;
+  end;
 end; // IMPRIMIR
 
 procedure TRSPrinter.NewPage;                        // CREA UNA NUEVA PAGINA
@@ -1424,50 +1452,50 @@ begin
   Pag^.Graphics := TList.Create;
   Pag^.PrintedLines := 0;
   PaginaActual := LasPaginas.IndexOf(Pag);
-  PageNo:=PaginaActual+1;
+  PageNo := PaginaActual+1;
 end;
 
 procedure TRSPrinter.SetModelName(Name : String);
 begin
   if FModo = pmWindows then
-    begin
-      if Printer.Printers.IndexOf(Name) <> -1 then
-        Printer.PrinterIndex := Printer.Printers.IndexOf(Name);
-    end
+  begin
+    if Printer.Printers.IndexOf(Name) <> -1 then
+      Printer.PrinterIndex := Printer.Printers.IndexOf(Name);
+  end
   else
-    begin
-      if Name = 'Cannon F-60' then
-        SetModel(Cannon_F60)
-      else if Name = 'Cannon laser' then
-        SetModel(Cannon_Laser)
-      else if Name = 'Epson FX/LX/LQ' then
-        SetModel(Epson_FX)
-      else if Name = 'Epson Stylus' then
-        SetModel(Epson_Stylus)
-      else if Name = 'HP Deskjet' then
-        SetModel(HP_Deskjet)
-      else if Name = 'HP Laserjet' then
-        SetModel(HP_Laserjet)
-      else if Name = 'HP Thinkjet' then
-        SetModel(HP_Thinkjet)
-      else if Name = 'IBM Color Jet' then
-        SetModel(IBM_Color_Jet)
-      else if Name = 'IBM PC Graphics' then
-        SetModel(IBM_PC_Graphics)
-      else if Name = 'IBM Proprinter' then
-        SetModel(IBM_Proprinter)
-      else if Name = 'NEC 3500' then
-        SetModel(NEC_3500)
-      else if Name = 'NEC Pinwriter' then
-        SetModel(NEC_Pinwriter)
-      else if Name = 'Mp20Mi' then
-        SetModel(Mp20Mi);
-    end;
+  begin
+    if Name = 'Cannon F-60' then
+      SetModel(Cannon_F60)
+    else if Name = 'Cannon laser' then
+      SetModel(Cannon_Laser)
+    else if Name = 'Epson FX/LX/LQ' then
+      SetModel(Epson_FX)
+    else if Name = 'Epson Stylus' then
+      SetModel(Epson_Stylus)
+    else if Name = 'HP Deskjet' then
+      SetModel(HP_Deskjet)
+    else if Name = 'HP Laserjet' then
+      SetModel(HP_Laserjet)
+    else if Name = 'HP Thinkjet' then
+      SetModel(HP_Thinkjet)
+    else if Name = 'IBM Color Jet' then
+      SetModel(IBM_Color_Jet)
+    else if Name = 'IBM PC Graphics' then
+      SetModel(IBM_PC_Graphics)
+    else if Name = 'IBM Proprinter' then
+      SetModel(IBM_Proprinter)
+    else if Name = 'NEC 3500' then
+      SetModel(NEC_3500)
+    else if Name = 'NEC Pinwriter' then
+      SetModel(NEC_Pinwriter)
+    else if Name = 'Mp20Mi' then
+      SetModel(Mp20Mi);
+  end;
 end;
 
 function TRSPrinter.GetModelRealName(Model : TPrinterModel) : String;
 begin
-  Case Model of
+  case Model of
     Cannon_F60 : Result := 'Cannon F-60';
     Cannon_Laser : Result := 'Cannon Laser';
     Epson_FX : Result := 'Epson FX/LX/LQ';
@@ -1488,6 +1516,7 @@ function TRSPrinter.GetModelName : String;
 begin
   Result := GetModelRealName(FModelo);
 end;
+
 procedure TRSPrinter.GetModels(Models : TStrings);
 var
   i : integer;
@@ -1498,11 +1527,6 @@ begin
 end;
 
 { TPrintThread }
-
-procedure TPrintThread.Ask;
-begin
-  Answer := MessageDlg(Text,mtError,[mbRetry,mbCancel],0);
-end;
 
 procedure TPrintThread.Execute;
 var
@@ -2214,6 +2238,7 @@ procedure TRSPrinter.FormCloseQuery(Sender: TObject;
 begin
   if CanClose and CurrentlyPrinting and (MessageDlg('Há páginas a serem impressas. Cancelar? ',mtConfirmation,[mbYes,mbNo],0)=mrNo) then
     CanClose := False;
+
   if Assigned(OldCloseQuery) then
     OldCloseQuery(Sender,CanClose);
 end;
@@ -2223,12 +2248,12 @@ begin
   if Job = nil then
     RSPrinter.TrayIcon.Tip :=  ''
   else
-    begin
-      if PrintingPaused then
-        RSPrinter.TrayIcon.Tip := 'Em pausa '+PrintingJobName
-      else
-        RSPrinter.TrayIcon.Tip := 'Imprimindo '+PrintingJobName;
-    end;
+  begin
+    if PrintingPaused then
+      RSPrinter.TrayIcon.Tip := 'Em pausa '+PrintingJobName
+    else
+      RSPrinter.TrayIcon.Tip := 'Imprimindo '+PrintingJobName;
+  end;
 end;
 
 { TRSPrintTray }
@@ -2252,6 +2277,7 @@ var
   DivItem : TMenuItem;
 begin
   inherited Create(AOwner);
+
   RSPrinter := TRSPrinter(AOwner);
   FWnd := AllocateHWnd(WndProc);
   FIcon := TIcon.Create;
@@ -2272,7 +2298,8 @@ begin
   FPopUpMenuL.Items.Add(CancelAllItem);
   FPopUpMenuL.Items.Add(DivItem);
   FPopUpMenuL.Items.Add(PauseItem);
-  with TNIData do begin
+  with TNIData do
+  begin
     cbSize := TNOTIFYICONDATA.SizeOf;
     Wnd := FWnd;
     uID := 1;
@@ -2289,7 +2316,8 @@ var
   TNIData: TNOTIFYICONDATA;
 begin
   FPopUpMenuL.Free;
-  with TNIData do begin
+  with TNIData do
+  begin
     cbSize := TNOTIFYICONDATA.SizeOf;
     Wnd := FWnd;
     uID := 1;
@@ -2301,6 +2329,7 @@ begin
   end;
   FIcon.Free;
   DeallocateHWnd(FWnd);
+
   inherited Destroy;
 end;
 
@@ -2325,22 +2354,23 @@ end;
 procedure TRSPrintTray.PauseClick(Sender: TObject);
 begin
   if not TMenuItem(Sender).Checked then
-    begin
-       TMenuItem(Sender).Checked := True;
-       RSPrinter.PausePrinting;
-       Tip := 'Em pausa '+PrintingJobName;
-    end
+  begin
+    TMenuItem(Sender).Checked := True;
+    RSPrinter.PausePrinting;
+    Tip := 'Em pausa '+PrintingJobName;
+  end
   else
-    begin
-       TMenuItem(Sender).Checked := False;
-       RSPrinter.RestorePrinting;
-       Tip := 'Imprimindo '+PrintingJobName;
-    end;
+  begin
+    TMenuItem(Sender).Checked := False;
+    RSPrinter.RestorePrinting;
+    Tip := 'Imprimindo '+PrintingJobName;
+  end;
 end;
 
 procedure TRSPrintTray.SetTip(s: string);
 begin
-  if FTip <> s then begin
+  if FTip <> s then
+  begin
     FTip := s;
     if not (csDesigning in ComponentState) then
       TBChange;
@@ -2351,7 +2381,8 @@ procedure TRSPrintTray.TBChange;
 var
   TNIData: TNOTIFYICONDATA;
 begin
-  with TNIData do begin
+  with TNIData do
+  begin
    cbSize := TNOTIFYICONDATAW.SizeOf;
     Wnd := FWnd;
     uID := 1;
@@ -2365,10 +2396,11 @@ end;
 
 procedure TRSPrintTray.WndProc(var Msg: TMessage);
 begin
-  with Msg do begin
+  with Msg do
+  begin
     if Msg = WM_TASKICON then
       case LParamLo of
-        WM_LBUTTONDOWN:   DoOnLeftClick;
+        WM_LBUTTONDOWN: DoOnLeftClick;
       end
     else
       Result := DefWindowProc(FWnd, Msg, wParam, lParam);
