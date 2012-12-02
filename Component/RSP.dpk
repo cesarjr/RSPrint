@@ -31,8 +31,8 @@ requires
 
 contains
   RSPrint in 'RSPrint.pas',
-  RSPrintV in 'RSPrintV.pas',
-  FormConfImp in 'FormConfImp.pas',
-  SplPrint in 'SplPrint.pas';
+  Preview in 'Preview.pas' {FrmPreview},
+  PrinterSetup in 'PrinterSetup.pas' {FrmPrinterSetup},
+  Utils in 'Utils.pas';
 
 end.

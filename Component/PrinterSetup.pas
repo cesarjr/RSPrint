@@ -1,4 +1,4 @@
-unit FormConfImp;
+unit PrinterSetup;
 
 interface
 
@@ -9,7 +9,7 @@ type
 
   TImpTxt= TStrings;
 
-  TConfiguraImpressora = class(TForm)
+  TFrmPrinterSetup = class(TForm)
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
     ListaImpressoras: TComboBox;
@@ -34,13 +34,13 @@ type
   end;
 
 var
-  ConfiguraImpressora: TConfiguraImpressora;
+  FrmPrinterSetup: TFrmPrinterSetup;
 
 implementation
 
 {$R *.DFM}
 
-procedure TConfiguraImpressora.BtnPropriedadesClick(Sender: TObject);
+procedure TFrmPrinterSetup.BtnPropriedadesClick(Sender: TObject);
 var
   PrnSet: TPrinterSetupDialog;
 begin
@@ -49,17 +49,17 @@ begin
   PrnSet.Free;
 end;
 
-procedure TConfiguraImpressora.ListaImpressorasChange(Sender: TObject);
+procedure TFrmPrinterSetup.ListaImpressorasChange(Sender: TObject);
 begin
   ImpTxtSel := ListaImpressoras.Items[ListaImpressoras.ItemIndex];
 end;
 
-procedure TConfiguraImpressora.FormCreate(Sender: TObject);
+procedure TFrmPrinterSetup.FormCreate(Sender: TObject);
 begin
   ImpressorasTexto := TstringList.Create;
 end;
 
-procedure TConfiguraImpressora.SetaModo;
+procedure TFrmPrinterSetup.SetaModo;
 begin
   if (printer.Canvas.TextHeight('X') = 1) or (printer.Canvas.TextHeight('X') = 83) then
   begin
@@ -77,7 +77,7 @@ begin
   end;
 end;
 
-procedure TConfiguraImpressora.FormShow(Sender: TObject);
+procedure TFrmPrinterSetup.FormShow(Sender: TObject);
 begin
   listaimpressoras.Items := impressorastexto;
   listaimpressoras.Text := ImpTxtSel;
@@ -86,7 +86,7 @@ begin
   setamodo;
 end;
 
-procedure TConfiguraImpressora.WinPrintersChange(Sender: TObject);
+procedure TFrmPrinterSetup.WinPrintersChange(Sender: TObject);
 begin
   printer.PrinterIndex := winprinters.ItemIndex;
   setamodo;

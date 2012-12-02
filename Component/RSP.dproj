@@ -61,9 +61,13 @@
 			<DCCReference Include="vcl.dcp"/>
 			<DCCReference Include="vclsmp.dcp"/>
 			<DCCReference Include="RSPrint.pas"/>
-			<DCCReference Include="RSPrintV.pas"/>
-			<DCCReference Include="FormConfImp.pas"/>
-			<DCCReference Include="SplPrint.pas"/>
+			<DCCReference Include="Preview.pas">
+				<Form>FrmPreview</Form>
+			</DCCReference>
+			<DCCReference Include="PrinterSetup.pas">
+				<Form>FrmPrinterSetup</Form>
+			</DCCReference>
+			<DCCReference Include="Utils.pas"/>
 			<RcItem Include="Resources\RSPrintIcon.bmp">
 				<ResourceType>BITMAP</ResourceType>
 				<ResourceId>TRSPrinter</ResourceId>
@@ -100,7 +104,7 @@
 						<VersionInfo Name="MajorVer">2</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>
 						<VersionInfo Name="Release">0</VersionInfo>
-						<VersionInfo Name="Build">33</VersionInfo>
+						<VersionInfo Name="Build">39</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -112,7 +116,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">Savério Vertoni Alteração para DELPHI 2009</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription"/>
-						<VersionInfoKeys Name="FileVersion">2.0.0.33</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">2.0.0.39</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName"/>
 						<VersionInfoKeys Name="LegalCopyright"/>
 						<VersionInfoKeys Name="LegalTrademarks"/>

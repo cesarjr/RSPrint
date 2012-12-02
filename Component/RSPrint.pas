@@ -2,8 +2,6 @@ unit RSPrint;
 
 interface
 
-//{$R RSP.dres}
-
 uses
   Windows, Messages, SysUtils, CommDlg, Classes, Graphics, Controls, ExtCtrls, StdCtrls, Consts, ShellAPI, menus,
   Printers, ComCtrls, Forms, Dialogs;
@@ -287,7 +285,7 @@ procedure Register;
 implementation
 
 uses
-  RSPrintV, ComObj, splprint;
+  Preview, ComObj, Utils;
 
 var
   PrintingCanceled: boolean;
@@ -835,8 +833,8 @@ end;
 
 procedure TRSPrinter.PreviewReal;                            // MUESTRA LA IMPRESION EN PANTALLA
 begin
-  PreviewForm := TPrintPreview.Create(self);
-  TPrintPreview(PreviewForm).RSPrinter := self;
+  PreviewForm := TFrmPreview.Create(self);
+  TFrmPreview(PreviewForm).RSPrinter := self;
   PreviewForm.ShowModal;
   PreviewForm.Free;
 end;
@@ -1641,7 +1639,7 @@ var
            try
             Cod := StrToInt(Sub);
 (*Verificar*)
-            toprn(chr(Cod));
+            TUtils.ToPrn(chr(Cod));
 //            Write(Impresora,chr(Cod));
             Sub := '';
            except
@@ -1652,7 +1650,7 @@ var
            try
             Cod := StrToInt(Copy(Sub,1,P-1));
 (*Verificar*)
-            toprn(chr(Cod));
+            TUtils.ToPrn(chr(Cod));
 //            Write(Impresora,chr(Cod));
             Sub := Copy(Sub,P+1,Length(Sub)-3);
            except
@@ -1700,7 +1698,7 @@ var
         if Job.FTransliterate and (LineaAImprimir<>'') then
           CharToOemBuff(PChar(@LineaAImprimir[1]), PansiChar(@LineaAImprimir[1]),Length(LineaAImprimir));
 (*Verificar*)
-        toprnln(LineaAImprimir);
+        TUtils.ToPrnLn(LineaAImprimir);
 //        Writeln(Impresora,LineaAImprimir);
       end
     else
@@ -1739,7 +1737,7 @@ var
                           ImprimirCodigo(Job.PRNULineOFF);
                       end;
 (*Verificar*)
-                    toprn(LineaAImprimir[Columna]);
+                    TUtils.ToPrn(LineaAImprimir[Columna]);
                  //   Write(Impresora,LineaAImprimir[Columna]);
                     Inc(Columna);
                   end;
@@ -1766,13 +1764,13 @@ var
                 if Job.FTransliterate and (Txt<>'') then
                   CharToOemBuff(PChar(@Txt[1]), PansiChar(@Txt[1]),Length(Txt));
 (*Verificar*)
-                toprn(Txt);
+                TUtils.ToPrn(Txt);
                 //Write(Impresora,Txt);
                 if (Compress in Fuente) and not(Compress in Job.FFuente) then
                   begin
 (*Verificar*)
                     for i := 1 to Length(Escritura^.Text) do
-                      toprn(#8);
+                      TUtils.ToPrn(#8);
                       //Write(Impresora,#8);
                     if (Length(Escritura^.Text)*6) mod 10 = 0 then
                       i := Columna + (Length(Escritura^.Text) *6) div 10
@@ -1797,7 +1795,7 @@ var
                     While Columna <= i do
                       begin
 (*Verificar*)
-                        toprn(#32);
+                        TUtils.ToPrn(#32);
                         //Write(Impresora,#32);
                         Inc(Columna);
                       end;
@@ -1833,12 +1831,12 @@ var
             While Columna <= Length(LineaAImprimir) do
               begin
 (*Verificar*)
-                toprn(LineaAImprimir[Columna]);
+                TUtils.ToPrn(LineaAImprimir[Columna]);
                 //Write(Impresora,LineaAImprimir[Columna]);
                 Inc(Columna);
               end;
 (*Verificar*)
-            toprnln('');
+            TUtils.ToPrnLn('');
             //WriteLn(Impresora);
           end
         else
@@ -1865,7 +1863,7 @@ var
             if Job.FTransliterate and (LineaAImprimir<>'') then
               AnsiToOemBuff(PansiChar(LineaAImprimir[1]), PansiChar(LineaAImprimir[1]),Length(LineaAImprimir));
 (*Verificar*)
-            toprnln(pchar(LineaAImprimir));
+            TUtils.ToPrnLn(pchar(LineaAImprimir));
             //Writeln(Impresora,LineaAImprimir);
           end;
       end;
@@ -1873,7 +1871,7 @@ var
 
 begin
   ListaImpressoras:= tstringlist.Create;
-  EnumPrt(ListaImpressoras, PrinterId);
+  TUtils.EnumPrt(ListaImpressoras, PrinterId);
 
   While PrintingPaused and not PrintingCanceled and not PrintingCancelAll do
     Sleep(100);
@@ -1883,7 +1881,7 @@ begin
 
 (*Verificar*)
 //       ReWrite(Impresora);
-       StartPrint(ListaImpressoras[printer.Printerindex],'TESTE DE IMPRESSAO','',1);
+       TUtils.StartPrint(ListaImpressoras[printer.Printerindex],'TESTE DE IMPRESSAO','',1);
 
        ImprimirCodigo(Job.PRNReset);
        ImprimirCodigo(Job.PRNSetup);
@@ -1891,7 +1889,7 @@ begin
            ImprimirCodigo(Job.PRNSelLength);
 (*Verificar*)
 //           Write(Impresora,#84);
-       toprn(#84);
+       TUtils.ToPrn(#84);
 
 
 //         end;
@@ -2207,19 +2205,19 @@ begin
             (Job.PageLength=0) then
            begin
              for j := 1 to RSPrinter.PageContinuousJump do
-               toprnln('');
+               TUtils.ToPrnLn('');
               // WriteLn(Impresora,'');
            end
          else
 (*Verificar*)
 //           Write(Impresora,#12);
-         toprn(#12);
+         TUtils.ToPrn(#12);
      except
        Resultado := False;
      end;
 
 (*Verificar*)
-endprint();
+  TUtils.EndPrint;
 //      {$I-}
 //      CloseFile(Impresora);
 //      {$I+}

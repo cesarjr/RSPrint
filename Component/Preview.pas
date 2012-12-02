@@ -1,4 +1,4 @@
-unit RSPrintV;
+unit Preview;
 
 interface
 
@@ -7,7 +7,7 @@ uses
   Buttons, ActnList, ComCtrls;
 
 type
-  TPrintPreview = class(TForm)
+  TFrmPreview = class(TForm)
     Scroller: TScrollBox;
     Shower: TPaintBox;
     PrinterPanelH: TPanel;
@@ -98,14 +98,14 @@ type
     fMode: DWORD): Longint; stdcall;
 
 var
-  PrintPreview: TPrintPreview;
+  FrmPreview: TFrmPreview;
 
 implementation
 
 {$R *.DFM}
 
 uses
-  RSPrint, formconfimp, ZLibconst;
+  RSPrint, PrinterSetup, ZLibconst;
 
 const
   winspl  = 'winspool.drv';
@@ -117,7 +117,7 @@ function WSetPrinter; external winspl name 'SetPrinterA';
 function WDocumentProperties; external winspl name 'DocumentPropertiesA';
 
 
-procedure tprintpreview.UpdateStatus(Pag_Atual,Total_paginas:integer);
+procedure tFrmPreview.UpdateStatus(Pag_Atual,Total_paginas:integer);
 var
   Modo : string;
 begin
@@ -165,7 +165,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.FormShow(Sender: TObject);
+procedure TFrmPreview.FormShow(Sender: TObject);
 var
   ZoomAncho: Double;
   ZoomAlto: Double;
@@ -196,7 +196,7 @@ begin
   CopiasV.Value := TRSPrinter(RSPrinter).Copies;
 end;
 
-procedure TPrintPreview.FormCreate(Sender: TObject);
+procedure TFrmPreview.FormCreate(Sender: TObject);
 begin
   DontDraw := True;
   Width := Screen.Width - 30;
@@ -209,7 +209,7 @@ begin
   HojasNum := TList.Create;
 end;
 
-procedure TPrintPreview.FormDestroy(Sender: TObject);
+procedure TFrmPreview.FormDestroy(Sender: TObject);
 begin
   Hoja.Free;
   HojasNum.Free;
@@ -221,12 +221,12 @@ begin
   end;
 end;
 
-procedure TPrintPreview.CopiasVChange(Sender: TObject);
+procedure TFrmPreview.CopiasVChange(Sender: TObject);
 begin
   TRSPrinter(RSPrinter).Copies := CopiasV.Value;
 end;
 
-procedure TPrintPreview.ZoomShowerVChange(Sender: TObject);
+procedure TFrmPreview.ZoomShowerVChange(Sender: TObject);
 begin
   FZoom := ZoomShowerV.Value;
   DontDraw := true;
@@ -234,7 +234,7 @@ begin
   UpdateStatus(fpagina,TRSPrinter(RSPrinter).Paginas);
 end;
 
-procedure TPrintPreview.ShowerPaint(Sender: TObject);
+procedure TFrmPreview.ShowerPaint(Sender: TObject);
 var
   Rect: TRect;
 begin
@@ -255,12 +255,12 @@ begin
   Shower.Canvas.StretchDraw(Rect,Hoja);
 end;
 
-procedure TPrintPreview.BtnAnchoVClick(Sender: TObject);
+procedure TFrmPreview.BtnAnchoVClick(Sender: TObject);
 begin
   ZoomShowerV.Value := Round((Scroller.Width-30)*100/(Hoja.Width));
 end;
 
-procedure TPrintPreview.BtnCompletaVClick(Sender: TObject);
+procedure TFrmPreview.BtnCompletaVClick(Sender: TObject);
 var
   ZoomAncho: Double;
   ZoomAlto: Double;
@@ -274,7 +274,7 @@ begin
     ZoomShowerV.Value := Round(ZoomAlto);
 end;
 
-procedure TPrintPreview.PageChange;
+procedure TFrmPreview.PageChange;
 begin
   Enabled := False;
   GetHoja(FPagina,Hoja,False);
@@ -283,7 +283,7 @@ begin
   Enabled := True;
 end;
 
-procedure TPrintPreview.BtnImpActualVClick(Sender: TObject);
+procedure TFrmPreview.BtnImpActualVClick(Sender: TObject);
 begin
   Enabled := False;
   TRSPrinter(RSPrinter).PrintPage(FPagina);
@@ -291,7 +291,7 @@ begin
   BringToFront;
 end;
 
-procedure TPrintPreview.BtnImpTodoVClick(Sender: TObject);
+procedure TFrmPreview.BtnImpTodoVClick(Sender: TObject);
 begin
   Enabled := False;
   TRSPrinter(RSPrinter).PrintAll;
@@ -299,7 +299,7 @@ begin
   Close;
 end;
 
-procedure TPrintPreview.ShowerMouseDown(Sender: TObject;
+procedure TFrmPreview.ShowerMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   RealPositionH : integer;
@@ -337,15 +337,15 @@ begin
 end;
 
 
-procedure TPrintPreview.BtnPropiedadesVClick(Sender: TObject);
+procedure TFrmPreview.BtnPropiedadesVClick(Sender: TObject);
 var
   ADevice: array [0..255] of Char;
   ADriver: array [0..255] of Char;
   APort: array [0..255] of Char;
   DeviceMode: THandle;
-  f: TConfiguraImpressora;
+  f: TFrmPrinterSetup;
 begin
-  f:= tConfiguraImpressora.Create(application);
+  f:= TFrmPrinterSetup.Create(application);
 
   // Passa para o form de configuracao o modo e impressora atual
   TRSPrinter(RSPrinter).GetModels(f.ImpressorasTexto);
@@ -420,7 +420,7 @@ begin
   f.Free;
 end;
 
-procedure TPrintPreview.FormKeyPress(Sender: TObject; var Key: Char);
+procedure TFrmPreview.FormKeyPress(Sender: TObject; var Key: Char);
 begin
   if Key = '+' then
   begin
@@ -434,7 +434,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.GetHoja(Numero: integer; Hoja: TMetaFile; ViewDialog : boolean);
+procedure TFrmPreview.GetHoja(Numero: integer; Hoja: TMetaFile; ViewDialog : boolean);
 var
   formcaption: string;
   Data: TMemoryStream;
@@ -485,7 +485,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.LTotPagHClick(Sender: TObject);
+procedure TFrmPreview.LTotPagHClick(Sender: TObject);
 var
   Txt: string;
 begin
@@ -498,7 +498,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.FormMouseWheelDown(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+procedure TFrmPreview.FormMouseWheelDown(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
 begin
   if (Scroller.VertScrollBar.Position < Scroller.VertScrollBar.Range) then
   begin
@@ -508,7 +508,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.FormMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+procedure TFrmPreview.FormMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
 begin
   if (Scroller.VertScrollBar.Position > 0) then
   begin
@@ -518,7 +518,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActUpExecute(Sender: TObject);
+procedure TFrmPreview.ActUpExecute(Sender: TObject);
 begin
   if (Scroller.VertScrollBar.Position > 0) then
   begin
@@ -528,7 +528,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActDownExecute(Sender: TObject);
+procedure TFrmPreview.ActDownExecute(Sender: TObject);
 begin
   if (Scroller.VertScrollBar.Position < Scroller.VertScrollBar.Range) then
   begin
@@ -538,12 +538,12 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActFecharExecute(Sender: TObject);
+procedure TFrmPreview.ActFecharExecute(Sender: TObject);
 begin
   Close;
 end;
 
-procedure TPrintPreview.ActRightExecute(Sender: TObject);
+procedure TFrmPreview.ActRightExecute(Sender: TObject);
 begin
   if (Scroller.HorzScrollBar.Position < Scroller.HorzScrollBar.Range) then
   begin
@@ -553,7 +553,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActLeftExecute(Sender: TObject);
+procedure TFrmPreview.ActLeftExecute(Sender: TObject);
 begin
   if (Scroller.HorzScrollBar.Position > 0) then
   begin
@@ -563,7 +563,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActHomeExecute(Sender: TObject);
+procedure TFrmPreview.ActHomeExecute(Sender: TObject);
 begin
   if FPagina > 1 then
   begin
@@ -572,7 +572,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActEndExecute(Sender: TObject);
+procedure TFrmPreview.ActEndExecute(Sender: TObject);
 begin
   if FPagina < TRSPrinter(RSPrinter).Paginas then
   begin
@@ -581,7 +581,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActF1Execute(Sender: TObject);
+procedure TFrmPreview.ActF1Execute(Sender: TObject);
 begin
   ShowMessage('Ajuda'+#13+#13+
               'Inicio do relatorio    - Home'+#13+
@@ -592,7 +592,7 @@ begin
               'Fechar                     - Esc' );
 end;
 
-procedure TPrintPreview.ActPgUpExecute(Sender: TObject);
+procedure TFrmPreview.ActPgUpExecute(Sender: TObject);
 begin
   if FPagina > 1 then
   begin
@@ -601,7 +601,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActPgDnExecute(Sender: TObject);
+procedure TFrmPreview.ActPgDnExecute(Sender: TObject);
 begin
   if FPagina < TRSPrinter(RSPrinter).Paginas then
   begin
@@ -610,7 +610,7 @@ begin
   end;
 end;
 
-procedure TPrintPreview.ActEnterExecute(Sender: TObject);
+procedure TFrmPreview.ActEnterExecute(Sender: TObject);
 begin
   ShowMessage('imprimir');
 end;
