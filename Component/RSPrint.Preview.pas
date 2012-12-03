@@ -1,4 +1,4 @@
-unit Preview;
+unit RSPrint.Preview;
 
 interface
 
@@ -105,7 +105,7 @@ implementation
 {$R *.DFM}
 
 uses
-  RSPrint, PrinterSetup, ZLibconst;
+  RSPrint, RSPrint.Preview.PrinterSetup, ZLibConst;
 
 const
   winspl  = 'winspool.drv';

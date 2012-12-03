@@ -14,15 +14,30 @@ type
   TRSPrinter = class;
 
   TPrinterModel = (Cannon_F60, Cannon_Laser, Epson_FX, Epson_LX, Epson_Stylus, HP_Deskjet, HP_Laserjet, HP_Thinkjet,
-    IBM_Color_Jet, IBM_PC_Graphics, IBM_Proprinter, NEC_3500, NEC_Pinwriter,Mp20Mi);
+    IBM_Color_Jet, IBM_PC_Graphics, IBM_Proprinter, NEC_3500, NEC_Pinwriter, Mp20Mi);
 
   TPrinterMode = (pmFast, pmWindows);
+
   TLineType = (ltSingle, ltDouble);
 
   TFontType = (Bold, Italic, Underline, Compress, DobleWide);
+
   TFastFont = Set of TFontType;
 
   TTbAlign = (alLeft, alCenter, alRight);
+
+  TInitialZoom = (zWidth, zHeight);
+
+  TPageSize = (pzDefault, pzContinuous, pzLetter, pzLegal, pzA4, pzLetterSmall, pzTabloid, pzLedger, pzStatement,
+    pzExecutive, pzA3, pzA4small, pzA5, pzB4, pzB5, pzFolio, pzQuarto, pz10x14, pz11x17, pzNote, pzEnv9, pzEnv10,
+    pzEnv11, pzEnv12, pzEnv14, pzEnvDl, pzEnvC5, pzEnvC3, pzEnvC4, pzEnvC6, pzEnvC65, pzEnvB4, pzEnvB5, pzEnvB6,
+    pzEnvItaly, pzEnvMonarch, pzEnvPersonal, pzFanfoldUS, pzFanfoldStd, pzFanfoldLgl);
+
+  TRSPrinterPreview = (ppYes, ppNo);
+
+  TTbPreviewType = (pYes, pNo, pDefault);
+
+  TRSPrinterMode = (rmFast, rmWindows, rmDefault);
 
   PPage = ^TPage;
   TPage = record
@@ -63,28 +78,6 @@ type
     Line2: byte;
     Kind: TLineType;
   end;
-
-  EPrinterError = class(Exception);
-
-  TInitialZoom = (zWidth, zHeight);
-
-  TPageSize = (pzDefault, pzContinuous, pzLetter, pzLegal, pzA4, pzLetterSmall, pzTabloid, pzLedger, pzStatement,
-    pzExecutive, pzA3, pzA4small, pzA5, pzB4, pzB5, pzFolio, pzQuarto, pz10x14, pz11x17, pzNote, pzEnv9, pzEnv10,
-    pzEnv11, pzEnv12, pzEnv14, pzEnvDl, pzEnvC5, pzEnvC3, pzEnvC4, pzEnvC6, pzEnvC65, pzEnvB4, pzEnvB5, pzEnvB6,
-    pzEnvItaly, pzEnvMonarch, pzEnvPersonal, pzFanfoldUS, pzFanfoldStd, pzFanfoldLgl);
-
-  PTbPrn = ^TTbPrn;
-  TTbPrn = record
-    Name: string;
-    FastModel: string;
-    WinModel: string;
-    FastPort: string;
-    WinTopMargin: Integer;
-    WinBottomMargin: Integer;
-    DefaultMode: TPrinterMode;
-  end;
-
-  TTbSaveMode = (smNoSave, smFile, smRegistry);
 
   PPrintJob = ^TPrintJob;
   TPrintJob = record
@@ -149,8 +142,6 @@ type
   published
     property Tip: string read FTip write SetTip;
   end;
-
-  TRSPrinterPreview = (ppYes,ppNo);
 
   TRSPrinter = class(TComponent)
   private
@@ -273,9 +264,6 @@ type
     property WinMarginBottom : integer read FWinBotMargin write FWinBotMargin default 0;
   end;
 
-  TTbPreviewType = (pYes, pNo, pDefault);
-  TRSPrinterMode = (rmFast, rmWindows, rmDefault);
-
   TTbProcedure = procedure of object;
 
   TTbGetTextEvent = procedure(var Text: string) of object;
@@ -285,7 +273,7 @@ procedure Register;
 implementation
 
 uses
-  Preview, ComObj, Utils;
+  RSPrint.Preview, ComObj, Utils;
 
 var
   PrintingCanceled: boolean;
@@ -296,24 +284,6 @@ var
 procedure Register;
 begin
   RegisterComponents('RS Componentes', [TRSPrinter]);
-end;
-
-function Min(Val1, Val2: Integer):integer;
-begin
-  if Val1<Val2 then
-    Min := Val1
-  else
-    Min := Val2;
-end;
-
-function Spaces(N : integer) : string;
-var
-  S: string;
-begin
-  S := '';
-  while Length(S) < N do
-    S := S + ' ';
-  Spaces := S;
 end;
 
 (* IMPRESSORA *)
@@ -1912,7 +1882,7 @@ begin
        UltimaEscritura := 0;
        Pagina := Job.LasPaginas.Items[Number-1];
        LA := 1;
-       while (LA<Min(Pagina.PrintedLines,Job.FLineas)) and (not PrintingCanceled) and not (PrintingCancelAll) do
+       while (LA < TUtils.Min(Pagina.PrintedLines, Job.FLineas)) and (not PrintingCanceled) and not (PrintingCancelAll) do
          begin // SE IMPRIMEN TODAS LAS LINEAS
            LineaAImprimir := '';
            // ANALIZO PRIMERO LAS LINEAS HORIZONTALES

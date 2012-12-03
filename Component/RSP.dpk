@@ -1,7 +1,5 @@
 package RSP;
 
-{$R *.res}
-{$R *.dres}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -24,6 +22,8 @@ package RSP;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$IMPLICITBUILD OFF}
+{$R *.res}
+{$R *.dres}
 
 requires
   vcl,
@@ -31,8 +31,8 @@ requires
 
 contains
   RSPrint in 'RSPrint.pas',
-  Preview in 'Preview.pas' {FrmPreview},
-  PrinterSetup in 'PrinterSetup.pas' {FrmPrinterSetup},
+  RSPrint.Preview in 'RSPrint.Preview.pas',
+  RSPrint.Preview.PrinterSetup in 'RSPrint.Preview.PrinterSetup.pas' {FrmPrinterSetup},
   Utils in 'Utils.pas';
 
 end.

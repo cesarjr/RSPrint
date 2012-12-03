@@ -6,11 +6,15 @@ With this component, you can print in matrix printers using draft mode - high sp
 
 You can use it to fill easily documents like orders, invoices and others that are previous made in off-set.
 
-The goal of this project is to provide an open source alternative for Deltress RDPrint component.
+
+== Delphi and platform compatibility
+
+This component was tested on Delphi XE. I think it'll run withiout problem in above versions.
+
+It's running just under Microsoft Windows.
 
 
-
-== Original RSPrint
+== About original RSPrint and it's source-code
 
 A variety of versions of this component can be found on Internet.
 
@@ -18,3 +22,4 @@ Unfortunately there isn't (or there wasn't) an official repository to it. And it
 
 So, I found Mr. Saverio Vertoni who told me that was the author. I told him about my plans of maintaining the project and he donated me the source. 
 
+The original source-code can be found {here in the v2.0.0.original}[https://github.com/cesarjr/RSPrint/tree/v2.0.0.original] tag.

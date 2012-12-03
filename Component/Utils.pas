@@ -1,4 +1,5 @@
 unit Utils;
+{$WARN SYMBOL_PLATFORM OFF}
 
 interface
 
@@ -21,12 +22,21 @@ type
     class procedure EndPrint;
     class function ToPrn(s: string): Boolean;
     class function ToPrnLn(s: string): Boolean;
+    class function Min(Val1, Val2: Integer): Integer;
   end;
 
 implementation
 
 uses
   StrUtils;
+
+class function TUtils.Min(Val1, Val2: Integer): Integer;
+begin
+  if Val1<Val2 then
+    Min := Val1
+  else
+    Min := Val2;
+end;
 
 class procedure TUtils.EnumPrt(st: TStrings; var def: Integer);
 type
