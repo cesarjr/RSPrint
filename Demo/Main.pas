@@ -26,6 +26,9 @@ var
 
 implementation
 
+uses
+  RSPrint.CommonTypes;
+
 {$R *.dfm}
 
 procedure TFrmMain.btnPreviewClick(Sender: TObject);

@@ -3,146 +3,13 @@ unit RSPrint;
 interface
 
 uses
-  Windows, Messages, SysUtils, CommDlg, Classes, Graphics, Controls, ExtCtrls, StdCtrls, Consts, ShellAPI, menus,
-  Printers, ComCtrls, Forms, Dialogs;
+  Windows, Messages, SysUtils, CommDlg, Classes, Graphics, Controls, ExtCtrls, StdCtrls, Consts, ShellAPI, Menus,
+  Printers, ComCtrls, Forms, Dialogs, RSPrint.PrintThread, RSPrint.CommonTypes;
 
 const
   RSPrintVersion = 'Versão 2.0';
-  WM_TASKICON = WM_USER + 10;
 
 type
-  TRSPrinter = class;
-
-  TPrinterModel = (Cannon_F60, Cannon_Laser, Epson_FX, Epson_LX, Epson_Stylus, HP_Deskjet, HP_Laserjet, HP_Thinkjet,
-    IBM_Color_Jet, IBM_PC_Graphics, IBM_Proprinter, NEC_3500, NEC_Pinwriter, Mp20Mi);
-
-  TPrinterMode = (pmFast, pmWindows);
-
-  TLineType = (ltSingle, ltDouble);
-
-  TFontType = (Bold, Italic, Underline, Compress, DobleWide);
-
-  TFastFont = Set of TFontType;
-
-  TTbAlign = (alLeft, alCenter, alRight);
-
-  TInitialZoom = (zWidth, zHeight);
-
-  TPageSize = (pzDefault, pzContinuous, pzLetter, pzLegal, pzA4, pzLetterSmall, pzTabloid, pzLedger, pzStatement,
-    pzExecutive, pzA3, pzA4small, pzA5, pzB4, pzB5, pzFolio, pzQuarto, pz10x14, pz11x17, pzNote, pzEnv9, pzEnv10,
-    pzEnv11, pzEnv12, pzEnv14, pzEnvDl, pzEnvC5, pzEnvC3, pzEnvC4, pzEnvC6, pzEnvC65, pzEnvB4, pzEnvB5, pzEnvB6,
-    pzEnvItaly, pzEnvMonarch, pzEnvPersonal, pzFanfoldUS, pzFanfoldStd, pzFanfoldLgl);
-
-  TRSPrinterPreview = (ppYes, ppNo);
-
-  TTbPreviewType = (pYes, pNo, pDefault);
-
-  TRSPrinterMode = (rmFast, rmWindows, rmDefault);
-
-  PPage = ^TPage;
-  TPage = record
-    Writed: TList;
-    VerticalLines: TList;
-    HorizLines: TList;
-    PrintedLines: byte;
-    Graphics: TList;
-  end;
-
-  PGraphic = ^TGraphic;
-  TGraphic = record
-    Col: single;
-    Line: single;
-    Picture: TPicture;
-  end;
-
-  PWrite = ^TWrite;
-  TWrite = record
-    Col: byte;
-    Line: byte;
-    FastFont: TFastFont;
-    Text: string;
-  end;
-
-  PHorizLine = ^THorizLine;
-  THorizLine = record
-    Col1: byte;
-    Col2: byte;
-    Line: byte;
-    Kind: TLineType;
-  end;
-
-  PVertLine = ^TVertLine;
-  TVertLine = record
-    Col: byte;
-    Line1: byte;
-    Line2: byte;
-    Kind: TLineType;
-  end;
-
-  PPrintJob = ^TPrintJob;
-  TPrintJob = record
-    Name: string;
-    PageSize: TPageSize;
-    PageLength: byte;
-    LasPaginas: TList;
-    FCopias: integer;
-    FFuente: TFastFont;
-    FPort: string;
-    FLineas: integer;
-    FTransliterate: boolean;
-    PRNNormal: string;
-    PRNBold: string;
-    PRNWide: string;
-    PRNItalics: string;
-    PRNULineON: string;
-    PRNULineOFF: string;
-    PRNCompON: string;
-    PRNCompOFF: string;
-    PRNSetup: string;
-    PRNReset: string;
-    PRNSelLength: string;
-  end;
-
-  TPrintThread = class(TThread)
-  private
-    Job: PPrintJob;
-    procedure SetJobName;
-
-  protected
-    procedure Execute; override;
-    function PrintFast(Number : integer) : boolean;
-
-  public
-    RSPrinter: TRSPrinter;
-    Jobs: TThreadList;
-  end;
-
-  TRSPrintTray = class(TComponent)
-  private
-    RSPrinter: TRSPrinter;
-    FPopupMenuL: TPopupMenu;
-    FIcon: TIcon;
-    FTip: string;
-    FWnd: HWnd;
-    procedure DoPopup(i: integer);
-    procedure TBChange;
-    procedure SetTip(s: string);
-    procedure PauseClick(Sender: TObject);
-    procedure CancelClick(Sender: TObject);
-    procedure CancelAllClick(Sender: TObject);
-
-  protected
-    procedure WndProc(var Msg: TMessage);
-    procedure DoOnLeftClick; virtual;
-
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-
-  published
-    property Tip: string read FTip write SetTip;
-  end;
-
   TRSPrinter = class(TComponent)
   private
     FOwner: TForm;
@@ -179,7 +46,6 @@ type
     FTransliterate: Boolean;
     FWinFont: string;
     OldCloseQuery: procedure (Sender: TObject; var CanClose: Boolean) of object;
-    TrayIcon: TRSPrintTray;
     PrintThread: TPrintThread;
     FPageSize: TPageSize;
     FPageLength: byte;
@@ -187,14 +53,16 @@ type
     FSaveConfToRegistry: boolean;
     FContinuousJump: byte;
     Cancelado: boolean;
+    FPrinterStatus: TPrinterStatus;
+
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     function GetModelRealName(Model : TPrinterModel) : String;
     procedure SetModel(Name: TPrinterModel);
     procedure SetFastPuerto(Puerto: string);
     function GetPaginas: integer;
     procedure Clear;
-    procedure PrintThreadTerminate(Sender: TObject);
     procedure BtnCancelarClick(Sender: TObject);
+    function IsCurrentlyPrinting: Boolean;
 
   protected
     procedure Loaded; override;
@@ -209,7 +77,6 @@ type
     PageHeightP: Double;  // ALTO DE PAGINA EN PULGADAS
     PageOrientation: TPrinterOrientation; // ORIENTACION DE LA PAGINA
     ReGenerate: Procedure of object;
-    CurrentlyPrinting : boolean;
     procedure PreviewReal;                            // MUESTRA LA IMPRESION EN PANTALLA
     procedure CancelAllPrinting;
     procedure PausePrinting;
@@ -238,6 +105,7 @@ type
     function GetPrintingHeight : integer;
     property WinPrinter : string read fWinPrinter write fWinPrinter;
     property WinPort : string read fWinPort write fWinPort;
+    property CurrentlyPrinting: Boolean read IsCurrentlyPrinting;
 
   published
     property PageContinuousJump : byte read FContinuousJump write FContinuousJump default 5;
@@ -273,20 +141,12 @@ procedure Register;
 implementation
 
 uses
-  RSPrint.Preview, ComObj, Utils;
-
-var
-  PrintingCanceled: boolean;
-  PrintingCancelAll: boolean;
-  PrintingPaused: boolean;
-  PrintingJobName: string;
+  RSPrint.Preview, RSPrint.Utils, ComObj;
 
 procedure Register;
 begin
   RegisterComponents('RS Componentes', [TRSPrinter]);
 end;
-
-(* IMPRESSORA *)
 
 constructor TRSPrinter.Create(AOwner: TComponent);
 var
@@ -1190,6 +1050,11 @@ begin
   result := Printer.PageWidth;
 end;
 
+function TRSPrinter.IsCurrentlyPrinting: Boolean;
+begin
+  Result := FPrinterStatus.CurrentlyPrinting;
+end;
+
 function TRSPrinter.GetPrintingHeight : integer;
 begin
   result := Printer.PageHeight;
@@ -1262,6 +1127,7 @@ begin
     New(Job);
     Job.Name := Title + 'Pág. '+IntToStr(Number-1);
     Job.PageSize := PageSize;
+    Job.PageContinuousJump := PageContinuousJump;
     Job.PageLength := PageLength;
     Job.LasPaginas := LP;
     Job.FCopias := Copies;
@@ -1280,22 +1146,11 @@ begin
     Job.PRNSetup := PRNSetup;
     Job.PRNReset := PRNReset;
     Job.PRNSelLength := PRNSelLength;
-    if not CurrentlyPrinting then
-    begin
-      CurrentlyPrinting := True;
-      PrintThread := TPrintThread.Create(True);
-      PrintThread.RSPrinter := self;
-      PrintThread.Jobs := TThreadList.Create;
-      TrayIcon := TRSPrintTray.Create(self);
-      PrintingCanceled := False;
-      PrintingPaused:= False;
-      PrintingCancelAll := False;
-    end;
-    PrintThread.RSPrinter := self;
-    PrintThread.Jobs.Add(Job);
-    PrintThread.OnTerminate := PrintThreadTerminate;
-    PrintThread.FreeOnTerminate := True;
-    PrintThread.Resume;
+
+    if not FPrinterStatus.CurrentlyPrinting then
+      PrintThread := TPrintThread.Create(FPrinterStatus);
+    PrintThread.AddJob(Job);
+    PrintThread.Start;
     Resultado := True;
   end;
 
@@ -1371,6 +1226,7 @@ begin // IMPRIMIR
     New(Job);
     Job.Name := Title;
     Job.PageSize := PageSize;
+    Job.PageContinuousJump := PageContinuousJump;
     Job.PageLength := PageLength;
     Job.LasPaginas := LP;
     Job.FCopias := Copies;
@@ -1389,22 +1245,11 @@ begin // IMPRIMIR
     Job.PRNSetup := PRNSetup;
     Job.PRNReset := PRNReset;
     Job.PRNSelLength := PRNSelLength;
-    if not CurrentlyPrinting then
-      begin
-        CurrentlyPrinting := True;
-        PrintThread := TPrintThread.Create(True);
-        PrintThread.RSPrinter := self;
-        PrintThread.Jobs := TThreadList.Create;
-        TrayIcon := TRSPrintTray.Create(Owner);
-        PrintingCanceled := False;
-        PrintingPaused := False;
-        PrintingCancelAll := False;
-      end;
-    PrintThread.RSPrinter := self;
-    PrintThread.Jobs.Add(Job);
-    PrintThread.OnTerminate := PrintThreadTerminate;
-    PrintThread.FreeOnTerminate := True;
-    PrintThread.Resume;
+
+    if not FPrinterStatus.CurrentlyPrinting then
+      PrintThread := TPrintThread.Create(FPrinterStatus);
+    PrintThread.AddJob(Job);
+    PrintThread.Start;
   end;
 end; // IMPRIMIR
 
@@ -1494,905 +1339,34 @@ begin
     Models.Add(GetModelRealName(TPrinterModel(i)));
 end;
 
-{ TPrintThread }
-
-procedure TPrintThread.Execute;
-var
-  Bien : boolean;
-  Copias,i : integer;
-  List : TList;
-  Cant : integer;
-begin
-  List := Jobs.LockList;
-  Cant := List.Count;
-  if Cant > 0 then
-    begin
-      Job := pPrintJob(List[0]);
-      PrintingJobName := Job^.Name;
-      Synchronize(SetJobName);
-    end
-  else
-    begin
-      Job := nil;
-      PrintingJobName := '';
-      Synchronize(SetJobName);
-    end;
-  Jobs.UnlockList;
-  While PrintingPaused and not PrintingCanceled and not PrintingCancelAll do
-    Sleep(100);
-  While (Job <> nil) do
-    begin
-      with Job^ do
-        begin
-          Bien := True;
-          for Copias := 1 to FCopias do
-            for i := 1 to LasPaginas.Count do
-              if not PrintingCanceled and not PrintingCancelAll and Bien then
-                Bien := Bien and PrintFast(i);
-          While LasPaginas.Count > 0 do
-            begin
-              with PPage(LasPaginas[0])^ do
-                begin
-                  while Writed.Count > 0 do
-                    begin
-                      Dispose(pWrite(Writed[0]));
-                      Writed.Delete(0);
-                    end;
-                  Writed.Free;
-                  while VerticalLines.Count > 0 do
-                    begin
-                      Dispose(pVertLine(VerticalLines[0]));
-                      VerticalLines.Delete(0);
-                    end;
-                  VerticalLines.Free;
-                  while HorizLines.Count > 0 do
-                    begin
-                      Dispose(pHorizLine(HorizLines[0]));
-                      HorizLines.Delete(0);
-                    end;
-                  HorizLines.Free;
-                end;
-              Dispose(PPage(LasPaginas[0]));
-              LasPaginas.Delete(0);
-            end;
-          LasPaginas.Free;
-        end;
-      Dispose(Job);
-      PrintingCanceled := False;
-      List := Jobs.LockList;
-      List.Delete(0);
-      Cant := List.Count;
-      if Cant > 0 then
-        begin
-          Job := pPrintJob(List[0]);
-          PrintingJobName := Job^.Name;
-          Synchronize(SetJobName);
-        end
-      else
-        begin
-          Job := nil;
-          PrintingJobName := '';
-          Synchronize(SetJobName);
-        end;
-    end;
-  PrintingJobName := '';
-end;
-
-function TPrintThread.PrintFast(Number : integer): boolean;
-var
-(*Verificar*)
-//  Impresora : TextFile; // Impresora
-  LA : integer; // LINEA ACTUAL
-  i,j,Contador : integer;
-  LineaAImprimir : string;
-  Pagina : PPage;
-  Fuente : TFastFont;
-  HLinea : PHorizLine;
-  VLinea : PVertLine;
-  UltimaEscritura : integer;
-  Resultado : boolean;
-  ListaImpressoras : tstringlist;
-  Printerid: integer;
-
-  procedure ImprimirCodigo(Codigo:string);
-  var
-    Sub : string;
-    Cod : byte;
-    P : byte;
-  begin
-    Sub := Codigo;
-    While Length(Sub) > 0 do
-      begin
-        P := Pos(#32,Sub);
-        if P = 0 then // ES EL ULTIMO CODIGO
-          begin
-           try
-            Cod := StrToInt(Sub);
-(*Verificar*)
-            TUtils.ToPrn(chr(Cod));
-//            Write(Impresora,chr(Cod));
-            Sub := '';
-           except
-           end;
-          end
-        else
-          begin // HAY MAS CODIGOS
-           try
-            Cod := StrToInt(Copy(Sub,1,P-1));
-(*Verificar*)
-            TUtils.ToPrn(chr(Cod));
-//            Write(Impresora,chr(Cod));
-            Sub := Copy(Sub,P+1,Length(Sub)-3);
-           except
-           end;
-          end;
-      end;
-  end;
-
-  procedure MaxX(var Linea:string; Col : byte);
-  begin
-    While Length(Linea)<Col do
-      Linea := Linea + ' ';
-  end;
-
-  procedure ImprimirLinea;
-  var
-    Escritura : PWrite;
-    i,Contador : integer;
-    Columna : byte;
-    ImprimioLinea : boolean;
-    Txt : string;
-  begin
-
-    if Pagina.Writed.Count = UltimaEscritura then
-      begin
-        if Fuente <> Job.FFuente then
-          begin // PONEMOS LA FUENTE POR DEFAULT
-            Fuente := Job.FFuente;
-            ImprimirCodigo(Job.PRNNormal);
-            if Bold in Fuente then
-              ImprimirCodigo(Job.PRNBold);
-            if Italic in Fuente then
-              ImprimirCodigo(Job.PRNItalics);
-            if DobleWide in Fuente then
-              ImprimirCodigo(Job.PRNWide)
-            else if Compress in Fuente then
-              ImprimirCodigo(Job.PRNCompON)
-            else
-              ImprimirCodigo(Job.PRNCompOFF);
-            if Underline in Fuente then
-              ImprimirCodigo(Job.PRNULineON)
-            else
-              ImprimirCodigo(Job.PRNULineOFF);
-          end;
-        if Job.FTransliterate and (LineaAImprimir<>'') then
-          CharToOemBuff(PChar(@LineaAImprimir[1]), PansiChar(@LineaAImprimir[1]),Length(LineaAImprimir));
-(*Verificar*)
-        TUtils.ToPrnLn(LineaAImprimir);
-//        Writeln(Impresora,LineaAImprimir);
-      end
-    else
-      begin
-        ImprimioLinea := False;
-        Contador := UltimaEscritura;
-        Columna := 1;
-        Escritura := Pagina.Writed.Items[Contador];
-        While (Contador < Pagina.Writed.Count) and (Escritura^.Line <= LA) do
-          begin
-            if Escritura^.Line = LA then
-              begin
-                ImprimioLinea := True;
-                UltimaEscritura := Contador;
-                MaxX(LineaAImprimir,Escritura^.Col+Length(Escritura^.Text));
-                While Columna < Escritura^.Col do
-                  begin
-                    if (LineaAImprimir[Columna] <> #32) and
-                       (Fuente <> Job.FFuente) then
-                      begin // PONEMOS LA FUENTE POR DEFAULT
-                        Fuente := Job.FFuente;
-                        ImprimirCodigo(Job.PRNNormal);
-                        if Bold in Fuente then
-                          ImprimirCodigo(Job.PRNBold);
-                        if Italic in Fuente then
-                          ImprimirCodigo(Job.PRNItalics);
-                        if DobleWide in Fuente then
-                          ImprimirCodigo(Job.PRNWide)
-                        else if Compress in Fuente then
-                          ImprimirCodigo(Job.PRNCompON)
-                        else
-                          ImprimirCodigo(Job.PRNCompOFF);
-                        if Underline in Fuente then
-                          ImprimirCodigo(Job.PRNULineON)
-                        else
-                          ImprimirCodigo(Job.PRNULineOFF);
-                      end;
-(*Verificar*)
-                    TUtils.ToPrn(LineaAImprimir[Columna]);
-                 //   Write(Impresora,LineaAImprimir[Columna]);
-                    Inc(Columna);
-                  end;
-                 if Escritura^.FastFont <> Fuente then
-                  begin // PONEMOS LA FUENTE DEL TEXTO
-                    Fuente := Escritura^.FastFont;
-                    ImprimirCodigo(Job.PRNNormal);
-                    if Bold in Fuente then
-                      ImprimirCodigo(Job.PRNBold);
-                    if Italic in Fuente then
-                      ImprimirCodigo(Job.PRNItalics);
-                    if DobleWide in Fuente then
-                      ImprimirCodigo(Job.PRNWide)
-                    else if Compress in Fuente then
-                      ImprimirCodigo(Job.PRNCompON)
-                    else
-                      ImprimirCodigo(Job.PRNCompOFF);
-                    if Underline in Fuente then
-                      ImprimirCodigo(Job.PRNULineON)
-                    else
-                      ImprimirCodigo(Job.PRNULineOFF);
-                  end;
-                Txt := Escritura^.Text;
-                if Job.FTransliterate and (Txt<>'') then
-                  CharToOemBuff(PChar(@Txt[1]), PansiChar(@Txt[1]),Length(Txt));
-(*Verificar*)
-                TUtils.ToPrn(Txt);
-                //Write(Impresora,Txt);
-                if (Compress in Fuente) and not(Compress in Job.FFuente) then
-                  begin
-(*Verificar*)
-                    for i := 1 to Length(Escritura^.Text) do
-                      TUtils.ToPrn(#8);
-                      //Write(Impresora,#8);
-                    if (Length(Escritura^.Text)*6) mod 10 = 0 then
-                      i := Columna + (Length(Escritura^.Text) *6) div 10
-                    else
-                      i := Columna + (Length(Escritura^.Text) *6) div 10;
-                    Fuente := Fuente - [Compress];
-                    ImprimirCodigo(Job.PRNNormal);
-                    if Bold in Fuente then
-                      ImprimirCodigo(Job.PRNBold);
-                    if Italic in Fuente then
-                      ImprimirCodigo(Job.PRNItalics);
-                    if DobleWide in Fuente then
-                      ImprimirCodigo(Job.PRNWide)
-                    else if Compress in Fuente then
-                      ImprimirCodigo(Job.PRNCompON)
-                    else
-                      ImprimirCodigo(Job.PRNCompOFF);
-                    if Underline in Fuente then
-                      ImprimirCodigo(Job.PRNULineON)
-                    else
-                      ImprimirCodigo(Job.PRNULineOFF);
-                    While Columna <= i do
-                      begin
-(*Verificar*)
-                        TUtils.ToPrn(#32);
-                        //Write(Impresora,#32);
-                        Inc(Columna);
-                      end;
-                  end
-                else
-                  Columna := Columna + Length(Escritura^.Text);
-              end;
-            Inc(Contador);
-            if Contador < Pagina.Writed.Count then
-              Escritura := Pagina.Writed.Items[Contador];
-          end;
-        if ImprimioLinea then
-          begin
-            if Fuente <> Job.FFuente then
-              begin // PONEMOS LA FUENTE POR DEFAULT
-                Fuente := Job.FFuente;
-                ImprimirCodigo(Job.PRNNormal);
-                if Bold in Fuente then
-                  ImprimirCodigo(Job.PRNBold);
-                if Italic in Fuente then
-                  ImprimirCodigo(Job.PRNItalics);
-                if DobleWide in Fuente then
-                  ImprimirCodigo(Job.PRNWide)
-                else if Compress in Fuente then
-                  ImprimirCodigo(Job.PRNCompON)
-                else
-                  ImprimirCodigo(Job.PRNCompOFF);
-                if Underline in Fuente then
-                  ImprimirCodigo(Job.PRNULineON)
-                else
-                  ImprimirCodigo(Job.PRNULineOFF);
-              end;
-            While Columna <= Length(LineaAImprimir) do
-              begin
-(*Verificar*)
-                TUtils.ToPrn(LineaAImprimir[Columna]);
-                //Write(Impresora,LineaAImprimir[Columna]);
-                Inc(Columna);
-              end;
-(*Verificar*)
-            TUtils.ToPrnLn('');
-            //WriteLn(Impresora);
-          end
-        else
-          begin
-            if Fuente <> Job.FFuente then
-              begin // PONEMOS LA FUENTE POR DEFAULT
-                Fuente := Job.FFuente;
-                ImprimirCodigo(Job.PRNNormal);
-                if Bold in Fuente then
-                  ImprimirCodigo(Job.PRNBold);
-                if Italic in Fuente then
-                  ImprimirCodigo(Job.PRNItalics);
-                if DobleWide in Fuente then
-                  ImprimirCodigo(Job.PRNWide)
-                else if Compress in Fuente then
-                  ImprimirCodigo(Job.PRNCompON)
-                else
-                  ImprimirCodigo(Job.PRNCompOFF);
-                if Underline in Fuente then
-                  ImprimirCodigo(Job.PRNULineON)
-                else
-                  ImprimirCodigo(Job.PRNULineOFF);
-              end;
-            if Job.FTransliterate and (LineaAImprimir<>'') then
-              AnsiToOemBuff(PansiChar(LineaAImprimir[1]), PansiChar(LineaAImprimir[1]),Length(LineaAImprimir));
-(*Verificar*)
-            TUtils.ToPrnLn(pchar(LineaAImprimir));
-            //Writeln(Impresora,LineaAImprimir);
-          end;
-      end;
-  end;
-
-begin
-  ListaImpressoras:= tstringlist.Create;
-  TUtils.EnumPrt(ListaImpressoras, PrinterId);
-
-  While PrintingPaused and not PrintingCanceled and not PrintingCancelAll do
-    Sleep(100);
-     try
-       Resultado := True;
-     //  AssignFile(Impresora,Job.FPort);
-
-(*Verificar*)
-//       ReWrite(Impresora);
-       TUtils.StartPrint(ListaImpressoras[printer.Printerindex],'TESTE DE IMPRESSAO','',1);
-
-       ImprimirCodigo(Job.PRNReset);
-       ImprimirCodigo(Job.PRNSetup);
-
-           ImprimirCodigo(Job.PRNSelLength);
-(*Verificar*)
-//           Write(Impresora,#84);
-       TUtils.ToPrn(#84);
-
-
-//         end;
-       Fuente := Job.FFuente;
-       ImprimirCodigo(Job.PRNNormal);
-       if Bold in Fuente then
-         ImprimirCodigo(Job.PRNBold);
-       if Italic in Fuente then
-         ImprimirCodigo(Job.PRNItalics);
-       if DobleWide in Fuente then
-         ImprimirCodigo(Job.PRNWide)
-       else if Compress in Fuente then
-         ImprimirCodigo(Job.PRNCompON)
-       else
-         ImprimirCodigo(Job.PRNCompOFF);
-       if Underline in Fuente then
-         ImprimirCodigo(Job.PRNULineON)
-       else
-         ImprimirCodigo(Job.PRNULineOFF);
-       UltimaEscritura := 0;
-       Pagina := Job.LasPaginas.Items[Number-1];
-       LA := 1;
-       while (LA < TUtils.Min(Pagina.PrintedLines, Job.FLineas)) and (not PrintingCanceled) and not (PrintingCancelAll) do
-         begin // SE IMPRIMEN TODAS LAS LINEAS
-           LineaAImprimir := '';
-           // ANALIZO PRIMERO LAS LINEAS HORIZONTALES
-           For Contador := 0 to Pagina.HorizLines.Count-1 do
-             begin
-               HLinea := Pagina.HorizLines.Items[Contador];
-               if HLinea^.Line = LA then // ES EN ESTA LINEA
-                 begin
-                   MaxX(LineaAImprimir,HLinea^.Col2);
-                   if HLinea^.Kind = ltSingle then
-                     begin
-                       for i := HLinea^.Col1 to HLinea^.Col2 do
-                         LineaAImprimir[i] := #196;
-                     end
-                   else // LINEA DOBLE
-                     begin
-                       for i := HLinea^.Col1 to HLinea^.Col2 do
-                         LineaAImprimir[i] := #205;
-                     end;
-                 end;
-             end;
-           // AHORA SE ANALIZAN LAS LINEAS VERTICALES
-           For Contador := 0 to Pagina.VerticalLines.Count-1 do
-             begin
-               VLinea := Pagina.VerticalLines.Items[Contador];
-                 if (VLinea^.Line1<=LA) and (VLinea^.Line2>=LA) then
-                   begin // LA LINEA PASA POR ESTA LINEA
-                     MaxX(LineaAImprimir,VLinea^.Col);
-                     if VLinea^.Line1=LA then
-                       begin // ES LA PRIMER LINEA
-                         if LineaAImprimir[VLinea^.Col] = #196 then // LINEA HORIZONTAL SIMPLE
-                           begin
-                             if (VLinea^.Col > 0) and (ord(LineaAImprimir[VLinea^.Col-1])in[192,193,194,195,196,197,199,208,210,211,214,215,218]) then
-                               begin // VIENE DE LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[180,182,183,189,191,193,194,196,197,208,210,215,217]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #194
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #210;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #191
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #183;
-                                   end;
-                               end
-                             else
-                               begin // NO VA PARA LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[180,182,183,189,191,193,194,196,197,208,210,215,217]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #218
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #214;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #194
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #210;
-                                   end;
-                               end;
-                           end
-                         else if LineaAImprimir[VLinea^.Col] = #205 then // LINEA HORIZONTAL DOBLE
-                           begin
-                             if (VLinea^.Col > 0) and (ord(LineaAImprimir[VLinea^.Col-1])in[198,200,201,202,203,204,205,206,207,209,212,213]) then
-                               begin // VIENE DE LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[181,184,185,187,188,190,202,203,205,206,207,209,216]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #209
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #203;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #184
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #187;
-                                   end;
-                               end
-                             else
-                               begin // NO VA PARA LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[181,184,185,187,188,190,202,203,205,206,207,209,216]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #213
-                                      else
-                                       LineaAImprimir[VLinea^.Col] := #201;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #209
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #203;
-                                   end;
-                               end;
-                           end
-                         else // HAY OTRO CODIGO
-                           begin
-                             if VLinea^.Kind = ltSingle then
-                               LineaAImprimir[VLinea^.Col] := #179
-                             else // Doble
-                               LineaAImprimir[VLinea^.Col] := #186;
-                           end;
-                       end
-                     else if VLinea^.Line2=LA then
-                       begin // ES LA ULTIMA LINEA
-                         if LineaAImprimir[VLinea^.Col] = #196 then // LINEA HORIZONTAL SIMPLE
-                           begin
-                             if (VLinea^.Col > 0) and (ord(LineaAImprimir[VLinea^.Col-1])in[192,193,194,195,196,197,199,208,210,211,214,215,218]) then
-                               begin // VIENE DE LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[180,182,183,189,191,193,194,196,197,208,210,215,217]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #193
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #207;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #217
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #189;
-                                   end;
-                               end
-                             else
-                               begin // NO VA PARA LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[180,182,183,189,191,193,194,196,197,208,210,215,217]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #192
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #211;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #207;
-                                   end;
-                               end;
-                           end
-                         else if LineaAImprimir[VLinea^.Col] = #205 then // LINEA HORIZONTAL DOBLE
-                           begin
-                             if (VLinea^.Col > 0) and (ord(LineaAImprimir[VLinea^.Col-1])in[181,184,185,187,188,190,202,203,205,206,207,209,216]) then
-                               begin // VIENE DE LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[198,200,201,202,203,204,205,206,207,209,212,213]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #207
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #202;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #190
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #188;
-                                   end;
-                               end
-                             else
-                               begin // NO VA PARA LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[198,200,201,202,203,204,205,206,207,209,212,213]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #212
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #200;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #208
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #202;
-                                   end;
-                               end;
-                           end
-                         else // HAY OTRO CODIGO
-                           begin
-                             if VLinea^.Kind = ltSingle then
-                               LineaAImprimir[VLinea^.Col] := #179
-                             else // Doble
-                               LineaAImprimir[VLinea^.Col] := #186;
-                           end;
-                       end
-                     else
-                       begin // ES UNA LINEA DEL MEDIO
-                         if LineaAImprimir[VLinea^.Col] = #196 then // LINEA HORIZONTAL SIMPLE
-                           begin
-                             if (VLinea^.Col > 0) and (ord(LineaAImprimir[VLinea^.Col-1])in[192,193,194,195,196,197,199,208,210,211,214,215,218]) then
-                               begin // VIENE DE LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[180,182,183,189,191,193,194,196,197,208,210,215,217]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #197
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #215;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #180
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #182;
-                                   end;
-                               end
-                             else
-                               begin // NO VA PARA LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[180,182,183,189,191,193,194,196,197,208,210,215,217]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #195
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #199;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #197
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #215;
-                                   end;
-                               end;
-                           end
-                         else if LineaAImprimir[VLinea^.Col] = #205 then // LINEA HORIZONTAL DOBLE
-                           begin
-                             if (VLinea^.Col > 0) and (ord(LineaAImprimir[VLinea^.Col-1])in[198,200,201,202,203,204,205,206,207,209,212,213]) then
-                               begin // VIENE DE LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[181,184,185,187,188,190,202,203,205,206,207,209,216]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #216
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #206;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #181
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #185;
-                                   end;
-                               end
-                             else
-                               begin // NO VA PARA LA IZQUIERDA
-                                 if (VLinea^.Col < Length(LineaAImprimir)) and (ord(LineaAImprimir[VLinea^.Col+1])in[181,184,185,187,188,190,202,203,205,206,207,209,216]) then
-                                   begin // SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #198
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #204;
-                                   end
-                                 else
-                                   begin // NO SIGUE A LA DERECHA
-                                     if VLinea^.Kind = ltSingle then
-                                       LineaAImprimir[VLinea^.Col] := #216
-                                     else
-                                       LineaAImprimir[VLinea^.Col] := #206;
-                                   end;
-                               end;
-                           end
-                         else
-                           begin
-                             if VLinea^.Kind = ltSingle then
-                               LineaAImprimir[VLinea^.Col] := #179
-                             else // Doble
-                               LineaAImprimir[VLinea^.Col] := #186;
-                           end;
-                       end;
-                   end;
-               end;
-             ImprimirLinea;
-             inc(LA);
-             While PrintingPaused and not PrintingCanceled and not PrintingCancelAll do
-               Sleep(100);
-           end;
-
-(* Cria um salto de picote manual selecionavel nas propriedades da rsprint *)
-         if (Job.PageSize=pzContinuous) and
-            (Job.PageLength=0) then
-           begin
-             for j := 1 to RSPrinter.PageContinuousJump do
-               TUtils.ToPrnLn('');
-              // WriteLn(Impresora,'');
-           end
-         else
-(*Verificar*)
-//           Write(Impresora,#12);
-         TUtils.ToPrn(#12);
-     except
-       Resultado := False;
-     end;
-
-(*Verificar*)
-  TUtils.EndPrint;
-//      {$I-}
-//      CloseFile(Impresora);
-//      {$I+}
-  PrintFast := Resultado;
-end;
-
-procedure TRSPrinter.PrintThreadTerminate(Sender : TObject);
-begin
-  CurrentlyPrinting := False;
-  TrayIcon.Free;
-  TrayIcon := nil;
-end;
-
 procedure TRSPrinter.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
-  if CanClose and CurrentlyPrinting and (MessageDlg('Há páginas a serem impressas. Cancelar? ',mtConfirmation,[mbYes,mbNo],0)=mrNo) then
+  if CanClose and FPrinterStatus.CurrentlyPrinting and (MessageDlg('Há páginas a serem impressas. Cancelar? ',mtConfirmation,[mbYes,mbNo],0)=mrNo) then
     CanClose := False;
 
   if Assigned(OldCloseQuery) then
     OldCloseQuery(Sender,CanClose);
 end;
 
-procedure TPrintThread.SetJobName;
-begin
-  if Job = nil then
-    RSPrinter.TrayIcon.Tip :=  ''
-  else
-  begin
-    if PrintingPaused then
-      RSPrinter.TrayIcon.Tip := 'Em pausa '+PrintingJobName
-    else
-      RSPrinter.TrayIcon.Tip := 'Imprimindo '+PrintingJobName;
-  end;
-end;
-
-{ TRSPrintTray }
-
-procedure TRSPrintTray.CancelClick(Sender: TObject);
-begin
-  RSPrinter.CancelPrinting;
-end;
-
-procedure TRSPrintTray.CancelAllClick(Sender: TObject);
-begin
-  RSPrinter.CancelAllPrinting;
-end;
-
-constructor TRSPrintTray.Create(AOwner: TComponent);
-var
-  TNIData: TNOTIFYICONDATA;
-  PauseItem : TMenuItem;
-  CancelItem : TMenuItem;
-  CancelAllItem : TMenuItem;
-  DivItem : TMenuItem;
-begin
-  inherited Create(AOwner);
-
-  RSPrinter := TRSPrinter(AOwner);
-  FWnd := AllocateHWnd(WndProc);
-  FIcon := TIcon.Create;
-  FIcon.Handle := LoadIcon(hinstance,'PRINTER');
-  FPopUpMenuL := TPopupMenu.Create(self);
-  PauseItem := TMenuItem.Create(FPopupMenuL);
-  PauseItem.OnClick := PauseClick;
-  PauseItem.Caption := 'Em pausa ';
-  DivItem := TMenuItem.Create(FPopupMenuL);
-  DivItem.Caption := '-';
-  CancelItem := TMenuITem.Create(FPopupMenuL);
-  CancelItem.OnClick := CancelClick;
-  CancelItem.Caption := 'Cancelar a impressão';
-  CancelAllItem := TMenuItem.Create(FPopupMenuL);
-  CancelAllItem.OnClick := CancelAllClick;
-  CancelAllItem.Caption := 'Cancelar toda a impressão';
-  FPopUpMenuL.Items.Add(CancelItem);
-  FPopUpMenuL.Items.Add(CancelAllItem);
-  FPopUpMenuL.Items.Add(DivItem);
-  FPopUpMenuL.Items.Add(PauseItem);
-  with TNIData do
-  begin
-    cbSize := TNOTIFYICONDATA.SizeOf;
-    Wnd := FWnd;
-    uID := 1;
-    uFlags := NIF_MESSAGE or NIF_ICON or NIF_TIP;
-    uCallbackMessage := WM_TASKICON;
-    hIcon := FIcon.Handle;
-    StrCopy(szTip, PChar(FTip));
-    Shell_NotifyIcon(NIM_ADD, @TNIData);
-  end;
-end;
-
-destructor TRSPrintTray.Destroy;
-var
-  TNIData: TNOTIFYICONDATA;
-begin
-  FPopUpMenuL.Free;
-  with TNIData do
-  begin
-    cbSize := TNOTIFYICONDATA.SizeOf;
-    Wnd := FWnd;
-    uID := 1;
-    uFlags := NIF_MESSAGE or NIF_ICON or NIF_TIP;
-    uCallbackMessage := WM_TASKICON;
-    hIcon := FIcon.Handle;
-    StrCopy(szTip, PChar(FTip));
-    Shell_NotifyIcon(NIM_DELETE, @TNIData);
-  end;
-  FIcon.Free;
-  DeallocateHWnd(FWnd);
-
-  inherited Destroy;
-end;
-
-procedure TRSPrintTray.DoOnLeftClick;
-begin
-  if Assigned(FPopupMenuL) then
-    DoPopup(1);
-end;
-
-procedure TRSPrintTray.DoPopup(i: integer);
-var
-  Point : TPoint;
-begin
-  GetCursorPos(Point);
-  SetForeGroundWindow(FWnd);
-  case i of
-    1: FPopupmenuL.Popup(Point.X, Point.Y);
-  end;
-  PostMessage(0, 0, 0, 0);
-end;
-
-procedure TRSPrintTray.PauseClick(Sender: TObject);
-begin
-  if not TMenuItem(Sender).Checked then
-  begin
-    TMenuItem(Sender).Checked := True;
-    RSPrinter.PausePrinting;
-    Tip := 'Em pausa '+PrintingJobName;
-  end
-  else
-  begin
-    TMenuItem(Sender).Checked := False;
-    RSPrinter.RestorePrinting;
-    Tip := 'Imprimindo '+PrintingJobName;
-  end;
-end;
-
-procedure TRSPrintTray.SetTip(s: string);
-begin
-  if FTip <> s then
-  begin
-    FTip := s;
-    if not (csDesigning in ComponentState) then
-      TBChange;
-  end;
-end;
-
-procedure TRSPrintTray.TBChange;
-var
-  TNIData: TNOTIFYICONDATA;
-begin
-  with TNIData do
-  begin
-   cbSize := TNOTIFYICONDATAW.SizeOf;
-    Wnd := FWnd;
-    uID := 1;
-    uFlags := NIF_MESSAGE or NIF_ICON or NIF_TIP;
-    uCallbackMessage := WM_TASKICON;
-    hIcon := FIcon.Handle;
-    StrCopy(szTip, PChar(FTip));
-    Shell_NotifyIcon(NIM_MODIFY, @TNIData);
-  end;
-end;
-
-procedure TRSPrintTray.WndProc(var Msg: TMessage);
-begin
-  with Msg do
-  begin
-    if Msg = WM_TASKICON then
-      case LParamLo of
-        WM_LBUTTONDOWN: DoOnLeftClick;
-      end
-    else
-      Result := DefWindowProc(FWnd, Msg, wParam, lParam);
-  end;
-end;
-
 procedure TRSPrinter.CancelAllPrinting;
 begin
-  PrintingCancelAll := True;
+  FPrinterStatus.CancelAllPrinting;
 end;
 
 procedure TRSPrinter.CancelPrinting;
 begin
-  PrintingCanceled := True;
+  FPrinterStatus.CancelPrinting;
 end;
 
 procedure TRSPrinter.PausePrinting;
 begin
-  PrintingPaused := True;
+  FPrinterStatus.PausePrinting;
 end;
 
 procedure TRSPrinter.RestorePrinting;
 begin
-  PrintingPaused := False;
+  FPrinterStatus.PrintingPaused := False;
 end;
 
 procedure TRSPrinter.BtnCancelarClick(Sender: TObject);
