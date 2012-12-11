@@ -25,17 +25,6 @@ type
     FCopias: integer;
     FWinSupMargin: integer;     // MARGEN SUPERIOR PARA EL MODO WINDOWS
     FWinBotMargin: integer;     // MARGEN INFERIOR PARA EL MODO WINDOWS
-    PRNNormal: string;
-    PRNBold: string;
-    PRNWide: string;
-    PRNItalics: string;
-    PRNULineON: string;
-    PRNULineOFF: string;
-    PRNCompON: string;
-    PRNCompOFF: string;
-    PRNSetup: string;
-    PRNReset: string;
-    PRNSelLength: string;
     PaginaActual: Integer;
     FPreview: TRSPrinterPreview;
     FZoom: TInitialZoom;
@@ -54,6 +43,7 @@ type
     FContinuousJump: byte;
     Cancelado: boolean;
     FPrinterStatus: TPrinterStatus;
+    FControlCodes: TControlCodes;
 
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     function GetModelRealName(Model : TPrinterModel) : String;
@@ -77,32 +67,42 @@ type
     PageHeightP: Double;  // ALTO DE PAGINA EN PULGADAS
     PageOrientation: TPrinterOrientation; // ORIENTACION DE LA PAGINA
     ReGenerate: Procedure of object;
+
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+
+    procedure BeginDoc;  // PARA COMENZAR UNA NUEVA IMPRESION
+    procedure EndDoc; // ELIMINA LA INFORMACION DE LAS PAGINAS AL FINALIZAR
+
     procedure PreviewReal;                            // MUESTRA LA IMPRESION EN PANTALLA
+    procedure Print;                           // MANDA LA IMPRESION A LA IMPRESORA
+    procedure PrintAll;                           // MANDA LA IMPRESION A LA IMPRESORA
     procedure CancelAllPrinting;
     procedure PausePrinting;
     procedure RestorePrinting;
     procedure CancelPrinting;
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    procedure BeginDoc;  // PARA COMENZAR UNA NUEVA IMPRESION
-    procedure EndDoc; // ELIMINA LA INFORMACION DE LAS PAGINAS AL FINALIZAR
+
     procedure Write(Line, Col: byte; Text: string); // ESCRIBE UN TEXTO EN LA PAGINA
     procedure WriteFont(Line, Col: byte; Text: string; Font: TFastFont); // ESCRIBE UN TEXTO EN LA PAGINA
     procedure DrawMetafile(Col, Line: single; Picture: TMetafile); // Hace un dibujo
+
     procedure Box(Line1,Col1,Line2,Col2 : byte; Kind : TLineType);                // ESCRIBE UN RECTANGULO
     procedure LineH(Line,Col1,Col2 : byte; Kind : TLineType);           // ESCRIBE UNA LINEA HORIZONTAL
     procedure LineV(Line1,Line2,Col : byte; Kind : TLineType);             // ESCRIBE UNA LINEA VERTICAL
-    procedure Print;                           // MANDA LA IMPRESION A LA IMPRESORA
+
     procedure NewPage;                        // CREA UNA NUEVA PAGINA
+
     procedure SetModelName(Name : String);
-    procedure GetModels(Models : TStrings);
     function GetModelName : String;
+
+    procedure GetModels(Models : TStrings);
+
     procedure BuildPage(Number : integer; Page : TMetaFile;ToPrint:boolean;Mode : TPrinterMode;ShowDialog : boolean);
-    property Lines : byte read FLineas write FLineas default 66; // CANTIDAD DE LINEAS POR PAGINA
     function PrintPage(Number:integer) : boolean;// MANDA UNA PAGINA A LA IMPRESORA
-    procedure PrintAll;                           // MANDA LA IMPRESION A LA IMPRESORA
     function GetPrintingWidth : integer;
     function GetPrintingHeight : integer;
+
+    property Lines : byte read FLineas write FLineas default 66; // CANTIDAD DE LINEAS POR PAGINA
     property WinPrinter : string read fWinPrinter write fWinPrinter;
     property WinPort : string read fWinPort write fWinPort;
     property CurrentlyPrinting: Boolean read IsCurrentlyPrinting;
@@ -277,196 +277,196 @@ begin
   case Nombre of
     Cannon_F60 :
     begin
-      PRNNormal := '27 70 27 54 00';
-      PRNBold := '27 69';
-      PRNWide := '27 87 01';
-      PRNItalics := '27 54 01';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 70 27 54 00';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '27 54 01';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     Cannon_Laser :
     begin
-      PRNNormal := '27 38';
-      PRNBold := '27 79';
-      PRNWide := '27 87 01';
-      PRNItalics := '';
-      PRNULineON := '27 69';
-      PRNULineOFF := '27 82';
-      PRNCompON := '27 31 09';
-      PRNCompOFF := '27 31 13';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 38';
+      FControlCodes.Bold := '27 79';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '';
+      FControlCodes.UnderlineON := '27 69';
+      FControlCodes.UnderlineOFF := '27 82';
+      FControlCodes.CondensedON := '27 31 09';
+      FControlCodes.CondensedOFF := '27 31 13';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     HP_Deskjet :
     begin
-      PRNNormal := '27 40 115 48 66 27 40 115 48 83';
-      PRNBold := '27 40 115 51 66';
-      PRNWide := '27 87 01';
-      PRNItalics := '27 40 115 49 83';
-      PRNULineON := '27 38 100 48 68';
-      PRNULineOFF := '27 38 100 64';
-      PRNCompON := '27 40 115 49 54 46 54 72';
-      PRNCompOFF := '27 40 115 49 48 72';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 40 115 48 66 27 40 115 48 83';
+      FControlCodes.Bold := '27 40 115 51 66';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '27 40 115 49 83';
+      FControlCodes.UnderlineON := '27 38 100 48 68';
+      FControlCodes.UnderlineOFF := '27 38 100 64';
+      FControlCodes.CondensedON := '27 40 115 49 54 46 54 72';
+      FControlCodes.CondensedOFF := '27 40 115 49 48 72';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     HP_Laserjet :
     begin
-      PRNNormal := '27 40 115 48 66 27 40 115 48 83';
-      PRNBold := '27 40 115 53 66';
-      PRNWide := '27 87 01';
-      PRNItalics := '27 40 115 49 83';
-      PRNULineON := '27 38 100 68';
-      PRNULineOFF := '27 38 100 64';
-      PRNCompON := '27 40 115 49 54 46 54 72';
-      PRNCompOFF := '27 40 115 49 48 72';
-      PRNSetup := '';
-      PRNReset := '12';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 40 115 48 66 27 40 115 48 83';
+      FControlCodes.Bold := '27 40 115 53 66';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '27 40 115 49 83';
+      FControlCodes.UnderlineON := '27 38 100 68';
+      FControlCodes.UnderlineOFF := '27 38 100 64';
+      FControlCodes.CondensedON := '27 40 115 49 54 46 54 72';
+      FControlCodes.CondensedOFF := '27 40 115 49 48 72';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '12';
+      FControlCodes.SelLength := '27 67';
     end;
 
     HP_Thinkjet :
     begin
-      PRNNormal := '27 70';
-      PRNBold := '27 69';
-      PRNWide := '27 87 01';
-      PRNItalics := '';
-      PRNULineON := '27 45 49';
-      PRNULineOFF := '27 45 48';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 70';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '';
+      FControlCodes.UnderlineON := '27 45 49';
+      FControlCodes.UnderlineOFF := '27 45 48';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     IBM_Color_Jet :
     begin
-      PRNNormal := '27 72';
-      PRNBold := '27 71';
-      PRNWide := '27 87 01';
-      PRNItalics := '';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 72';
+      FControlCodes.Bold := '27 71';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     IBM_PC_Graphics :
     begin
-      PRNNormal := '27 70 27 55';
-      PRNBold := '27 69';
-      PRNWide := '27 87 01';
-      PRNItalics := '27 54';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 70 27 55';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '27 54';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     IBM_Proprinter :
     begin
-      PRNNormal := '27 70';
-      PRNBold := '27 69';
-      PRNWide := '27 87 01';
-      PRNItalics := '';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 70';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     NEC_3500 :
     begin
-      PRNNormal := '27 72';
-      PRNBold := '27 71';
-      PRNWide := '27 87 01';
-      PRNItalics := '';
-      PRNULineON := '27 45';
-      PRNULineOFF := '27 39';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 72';
+      FControlCodes.Bold := '27 71';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '';
+      FControlCodes.UnderlineON := '27 45';
+      FControlCodes.UnderlineOFF := '27 39';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     NEC_Pinwriter:
     begin
-      PRNNormal := '27 70 27 53';
-      PRNBold := '27 69';
-      PRNWide := '27 87 01';
-      PRNItalics := '27 52';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 70 27 53';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '27 52';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '';
+      FControlCodes.SelLength := '27 67';
     end;
 
     Epson_Stylus:
     begin
-      PRNNormal := '27 70 27 53 27 45 00';
-      PRNBold := '27 69';
-      PRNWide := '27 87 01';
-      PRNItalics := '27 52';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '27 70 15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '27 64';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 70 27 53 27 45 00';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '27 52';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '27 70 15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '27 64';
+      FControlCodes.SelLength := '27 67';
     end;
 
     Mp20Mi:
     begin
-      PRNNormal := '27 77';
-      PRNBold := '27 69';
-      PRNWide := '27 87 01';
-      PRNItalics := '27 52';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '27 15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '27 64';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 77';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 87 01';
+      FControlCodes.Italic := '27 52';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '27 15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '27 64';
+      FControlCodes.SelLength := '27 67';
     end;
     else
     begin
-      PRNNormal := '27 70 27 53';
-      PRNBold := '27 69';
-      PRNWide := '27 14';
-      PRNItalics := '27 52';
-      PRNULineON := '27 45 01';
-      PRNULineOFF := '27 45 00';
-      PRNCompON := '15';
-      PRNCompOFF := '18';
-      PRNSetup := '';
-      PRNReset := '27 64';
-      PRNSelLength := '27 67';
+      FControlCodes.Normal := '27 70 27 53';
+      FControlCodes.Bold := '27 69';
+      FControlCodes.Wide := '27 14';
+      FControlCodes.Italic := '27 52';
+      FControlCodes.UnderlineON := '27 45 01';
+      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.CondensedON := '15';
+      FControlCodes.CondensedOFF := '18';
+      FControlCodes.Setup := '';
+      FControlCodes.Reset := '27 64';
+      FControlCodes.SelLength := '27 67';
     end;
   end;
 end;
@@ -1135,17 +1135,7 @@ begin
     Job.FPort := FastPort;
     Job.FLineas := Lines;
     Job.FTransliterate := Transliterate;
-    Job.PRNNormal := PRNNormal;
-    Job.PRNBold := PRNBold;
-    Job.PRNWide := PRNWide;
-    Job.PRNItalics := PRNItalics;
-    Job.PRNULineON := PRNULineON;
-    Job.PRNULineOFF := PRNULineOFF;
-    Job.PRNCompON := PRNCompON;
-    Job.PRNCompOFF := PRNCompOFF;
-    Job.PRNSetup := PRNSetup;
-    Job.PRNReset := PRNReset;
-    Job.PRNSelLength := PRNSelLength;
+    Job.ControlCodes := FControlCodes;
 
     if not FPrinterStatus.CurrentlyPrinting then
       PrintThread := TPrintThread.Create(FPrinterStatus);
@@ -1234,17 +1224,7 @@ begin // IMPRIMIR
     Job.FPort := FastPort;
     Job.FLineas := Lines;
     Job.FTransliterate := Transliterate;
-    Job.PRNNormal := PRNNormal;
-    Job.PRNBold := PRNBold;
-    Job.PRNWide := PRNWide;
-    Job.PRNItalics := PRNItalics;
-    Job.PRNULineON := PRNULineON;
-    Job.PRNULineOFF := PRNULineOFF;
-    Job.PRNCompON := PRNCompON;
-    Job.PRNCompOFF := PRNCompOFF;
-    Job.PRNSetup := PRNSetup;
-    Job.PRNReset := PRNReset;
-    Job.PRNSelLength := PRNSelLength;
+    Job.ControlCodes := FControlCodes;
 
     if not FPrinterStatus.CurrentlyPrinting then
       PrintThread := TPrintThread.Create(FPrinterStatus);

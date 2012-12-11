@@ -76,11 +76,11 @@ procedure TFrmMain.PrintHeader;
 begin
   RSPrint.WriteFont(1,  1, 'Report Example',[Bold]);
   RSPrint.WriteFont(1, 72, Format('Page: %2.2d', [RSPrint.PageNo]), [Bold]);
-  RSPrint.LineH(2, 1, 79, ltSingle);
+  RSPrint.Write(2,  1, StringOfChar('-', 80));
 
   RSPrint.Write(3,  1, 'ID');
   RSPrint.Write(3, 10, 'Name');
-  RSPrint.LineH(4,  1, 79, ltSingle);
+  RSPrint.Write(4,  1, StringOfChar('-', 80));
 end;
 
 end.

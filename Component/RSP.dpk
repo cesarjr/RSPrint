@@ -36,6 +36,10 @@ contains
   RSPrint.Utils in 'RSPrint.Utils.pas',
   RSPrint.RSPrintTray in 'RSPrint.RSPrintTray.pas',
   RSPrint.PrintThread in 'RSPrint.PrintThread.pas',
-  RSPrint.CommonTypes in 'RSPrint.CommonTypes.pas';
+  RSPrint.CommonTypes in 'RSPrint.CommonTypes.pas',
+  RSPrint.PrintThread.FastPrintDevice in 'RSPrint.PrintThread.FastPrintDevice.pas',
+  RSPrint.PrintThread.FastPrintSpool in 'RSPrint.PrintThread.FastPrintSpool.pas',
+  RSPrint.PrintThread.FastPrintNative in 'RSPrint.PrintThread.FastPrintNative.pas',
+  RSPrint.PrintThread.FastPrintFile in 'RSPrint.PrintThread.FastPrintFile.pas';
 
 end.

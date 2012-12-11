@@ -33,6 +33,20 @@ type
 
   TRSPrinterMode = (rmFast, rmWindows, rmDefault);
 
+  TControlCodes = record
+    Normal: string;
+    Bold: string;
+    Wide: string;
+    Italic: string;
+    UnderlineON: string;
+    UnderlineOFF: string;
+    CondensedON: string;
+    CondensedOFF: string;
+    Setup: string;
+    Reset: string;
+    SelLength: string;
+  end;
+
   PPage = ^TPage;
   TPage = record
     Writed: TList;
@@ -85,17 +99,7 @@ type
     FPort: string;
     FLineas: integer;
     FTransliterate: boolean;
-    PRNNormal: string;
-    PRNBold: string;
-    PRNWide: string;
-    PRNItalics: string;
-    PRNULineON: string;
-    PRNULineOFF: string;
-    PRNCompON: string;
-    PRNCompOFF: string;
-    PRNSetup: string;
-    PRNReset: string;
-    PRNSelLength: string;
+    ControlCodes: TControlCodes;
   end;
 
   TPrinterStatus = record
