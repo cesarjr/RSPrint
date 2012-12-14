@@ -28,7 +28,7 @@ var
 implementation
 
 uses
-  RSPrint.CommonTypes;
+  RSPrint.CommonTypes, WinSpool;
 
 {$R *.dfm}
 
@@ -44,6 +44,7 @@ begin
   RSPrint.PrintAll;
 end;
 
+
 procedure TFrmMain.GenerateData;
 var
   Counter: Integer;
@@ -57,11 +58,12 @@ begin
 
     RSPrint.Mode := TPrinterMode(cmbMode.ItemIndex);
     RSPrint.ReportName := 'RSPrint Demo App';
+    RSPrint.SetModelName('Epson FX/LX/LQ');
 
     RSPrint.BeginDoc;
 
     PrintHeader;
-    CurrentLine := 5;
+    CurrentLine := 6;
 
     Counter := 0;
     for Name in NameList do
@@ -77,7 +79,7 @@ begin
       begin
         RSPrint.NewPage;
         PrintHeader;
-        CurrentLine := 5;
+        CurrentLine := 6;
       end;
     end;
   finally
@@ -591,13 +593,14 @@ end;
 
 procedure TFrmMain.PrintHeader;
 begin
-  RSPrint.WriteFont(1,  1, 'Report Example',[Bold]);
-  RSPrint.WriteFont(1, 72, Format('Page: %2.2d', [RSPrint.PageNo]), [Bold]);
-  RSPrint.Write(2,  1, StringOfChar('-', 80));
+  RSPrint.Write(1,  1, StringOfChar('-', 79));
+  RSPrint.WriteFont(2,  1, 'Report Example',[Bold]);
+  RSPrint.WriteFont(2, 72, Format('Page: %2.2d', [RSPrint.PageNo]), [Bold]);
+  RSPrint.Write(3,  1, StringOfChar('-', 79));
 
-  RSPrint.Write(3,  1, 'ID');
-  RSPrint.Write(3, 10, 'Name');
-  RSPrint.Write(4,  1, StringOfChar('-', 80));
+  RSPrint.Write(4,  1, 'ID');
+  RSPrint.Write(4, 10, 'Name');
+  RSPrint.Write(5,  1, StringOfChar('-', 79));
 end;
 
 end.

@@ -460,8 +460,8 @@ begin
       FControlCodes.Bold := '27 69';
       FControlCodes.Wide := '27 14';
       FControlCodes.Italic := '27 52';
-      FControlCodes.UnderlineON := '27 45 01';
-      FControlCodes.UnderlineOFF := '27 45 00';
+      FControlCodes.UnderlineON := '27 45 49';
+      FControlCodes.UnderlineOFF := '27 45 48';
       FControlCodes.CondensedON := '15';
       FControlCodes.CondensedOFF := '18';
       FControlCodes.Setup := '';
@@ -1228,6 +1228,7 @@ begin // IMPRIMIR
 
     if not FPrinterStatus.CurrentlyPrinting then
       PrintThread := TPrintThread.Create(FPrinterStatus);
+
     PrintThread.AddJob(Job);
     PrintThread.Start;
   end;

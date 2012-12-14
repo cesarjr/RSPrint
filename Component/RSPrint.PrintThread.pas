@@ -42,7 +42,31 @@ type
 implementation
 
 uses
-  SysUtils, Windows, Printers, RSPrint.Utils, RSPrint.PrintThread.FastPrintSpool, Dialogs;
+  SysUtils, Windows, Printers, RSPrint.Utils, RSPrint.PrintThread.FastPrintFile, RSPrint.PrintThread.FastPrintSpool,
+  Dialogs;
+
+constructor TPrintThread.Create(printerStatus: TPrinterStatus);
+begin
+  inherited Create(True);
+
+  FJobs := TThreadList.Create;
+  FTrayIcon := TRSPrintTray.Create(nil, FPrinterStatus);
+  FPrinterStatus := printerStatus;
+
+  FreeOnTerminate := True;
+  FPrinterStatus.StartPrinting;
+
+  FFastPrintDevice := TFastPrintSpool.Create;
+  //FFastPrintDevice := TFastPrintFile.Create;
+end;
+
+destructor TPrintThread.Destroy;
+begin
+  FJobs.Free;
+  FPrinterStatus.CurrentlyPrinting := False;
+
+  inherited;
+end;
 
 procedure TPrintThread.AddJob(job: PPrintJob);
 begin
@@ -395,28 +419,6 @@ begin
   end;
 end;
 
-constructor TPrintThread.Create(printerStatus: TPrinterStatus);
-begin
-  inherited Create(True);
-
-  FJobs := TThreadList.Create;
-  FTrayIcon := TRSPrintTray.Create(nil, FPrinterStatus);
-  FPrinterStatus := printerStatus;
-
-  FreeOnTerminate := True;
-  FPrinterStatus.StartPrinting;
-
-  FFastPrintDevice := TFastPrintSpool.Create;
-end;
-
-destructor TPrintThread.Destroy;
-begin
-  FJobs.Free;
-  FPrinterStatus.CurrentlyPrinting := False;
-
-  inherited;
-end;
-
 procedure TPrintThread.InflateLineWithSpaces(var line: string; maxCol: Byte);
 begin
   while Length(line) < maxCol do
@@ -424,38 +426,26 @@ begin
 end;
 
 procedure TPrintThread.PrintControlCodes(codeSequence: string);
-const
-  LAST_CODE_OF_SEQUENCE = 0;
-  SEPARATOR = #32;
 var
-  CodesToPrint: string;
-  CodeToPrint: byte;
-  NextCodePosition: byte;
+  CodesToPrint: TStringList;
+  CodeToPrint: Byte;
+  NextCode: Byte;
 begin
-  CodesToPrint := codeSequence;
+  if Trim(codeSequence) = '' then
+    exit;
 
-  while Length(CodesToPrint) > 0 do
-  begin
-    NextCodePosition := Pos(SEPARATOR, CodesToPrint);
+  CodesToPrint := TStringList.Create;
+  try
+    CodesToPrint.Delimiter := ' ';
+    CodesToPrint.DelimitedText := Trim(codeSequence);
 
-    if NextCodePosition = LAST_CODE_OF_SEQUENCE then
+    for NextCode := 0 to CodesToPrint.Count-1 do
     begin
-      try
-        CodeToPrint := StrToInt(CodesToPrint);
-        FFastPrintDevice.Write(Chr(CodeToPrint));
-        CodesToPrint := '';
-      except
-      end;
-    end
-    else
-    begin // HAY MAS CODIGOS
-      try
-        CodeToPrint := StrToInt(Copy(CodesToPrint, 1, NextCodePosition-1));
-        FFastPrintDevice.Write(Chr(CodeToPrint));
-        CodesToPrint := Copy(CodesToPrint, NextCodePosition+1, Length(CodesToPrint)-3);
-      except
-      end;
+      CodeToPrint := StrToInt(CodesToPrint[NextCode]);
+      FFastPrintDevice.Write(Chr(CodeToPrint));
     end;
+  finally
+    CodesToPrint.Free;
   end;
 end;
 
@@ -555,12 +545,7 @@ var
   Font: TFastFont;
   UltimaEscritura: Integer;
   Resultado: Boolean;
-  ListaImpressoras: TstringList;
-  PrinterId: Integer;
 begin
-  ListaImpressoras:= TStringList.Create;
-  TUtils.EnumPrt(ListaImpressoras, PrinterId);
-
   ProcessPauseIfNecessary;
 
   try
@@ -612,9 +597,11 @@ begin
     else
       FFastPrintDevice.Write(#12);
   except
-    //Resultado := False;
     on e: exception do
+    begin
       ShowMessage(e.Message);
+      Resultado := False;
+    end;
   end;
 
   FFastPrintDevice.EndDoc;
@@ -810,9 +797,12 @@ begin
         else
           PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
       end;
+
       if FJob.FTransliterate and (lineToPrint <> '') then
         AnsiToOemBuff(PansiChar(lineToPrint[1]), PansiChar(lineToPrint[1]), Length(lineToPrint));
-      FFastPrintDevice.WriteLn(PChar(lineToPrint));
+
+      //FFastPrintDevice.WriteLn(PChar(lineToPrint));
+      FFastPrintDevice.WriteLn(lineToPrint);
     end;
   end;
 end;
