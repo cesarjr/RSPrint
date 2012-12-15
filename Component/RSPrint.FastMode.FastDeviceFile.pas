@@ -1,13 +1,13 @@
-unit RSPrint.PrintThread.FastPrintFile;
+unit RSPrint.FastMode.FastDeviceFile;
 
 interface
 
 uses
-  RSPrint.PrintThread.FastPrintDevice;
+  RSPrint.FastMode.FastDevice;
 
 type
 
-  TFastPrintFile = class(TInterfacedObject, IFastPrintDevice)
+  TFastDeviceFile = class(TInterfacedObject, IFastDevice)
   private
     FFile: TextFile;
 
@@ -23,7 +23,7 @@ implementation
 uses
   SysUtils;
 
-procedure TFastPrintFile.BeginDoc;
+procedure TFastDeviceFile.BeginDoc;
 var
   FileName: string;
 begin
@@ -33,17 +33,17 @@ begin
   ReWrite(FFile);
 end;
 
-procedure TFastPrintFile.EndDoc;
+procedure TFastDeviceFile.EndDoc;
 begin
   CloseFile(FFile);
 end;
 
-procedure TFastPrintFile.Write(value: string);
+procedure TFastDeviceFile.Write(value: string);
 begin
   System.Write(FFile, value);
 end;
 
-procedure TFastPrintFile.WriteLn(value: string);
+procedure TFastDeviceFile.WriteLn(value: string);
 begin
   System.WriteLn(FFile, value);
 end;

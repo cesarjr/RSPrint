@@ -1,12 +1,12 @@
-unit RSPrint.PrintThread.FastPrintSpool;
+unit RSPrint.FastMode.FastDeviceSpool;
 
 interface
 
 uses
-  RSPrint.PrintThread.FastPrintDevice, Windows, Classes;
+  RSPrint.FastMode.FastDevice, Windows, Classes;
 
 type
-  TFastPrintSpool = class(TInterfacedObject, IFastPrintDevice)
+  TFastDeviceSpool = class(TInterfacedObject, IFastDevice)
 
   private
     FPrinterHandle: THandle;
@@ -33,7 +33,7 @@ implementation
 uses
   Printers, WinSpool;
 
-procedure TFastPrintSpool.BeginDoc;
+procedure TFastDeviceSpool.BeginDoc;
 var
   ListaImpressoras: TStringList;
   PrinterId: Integer;
@@ -47,22 +47,22 @@ begin
   end;
 end;
 
-procedure TFastPrintSpool.EndDoc;
+procedure TFastDeviceSpool.EndDoc;
 begin
   EndPrint;
 end;
 
-procedure TFastPrintSpool.Write(value: string);
+procedure TFastDeviceSpool.Write(value: string);
 begin
   ToPrn(value);
 end;
 
-procedure TFastPrintSpool.WriteLn(value: string);
+procedure TFastDeviceSpool.WriteLn(value: string);
 begin
   ToPrnLn(value);
 end;
 
-procedure TFastPrintSpool.StartPrint(prtName, docName: string; copies: Integer);
+procedure TFastDeviceSpool.StartPrint(prtName, docName: string; copies: Integer);
 var
   DocInfo: PDocInfo1;
 begin
@@ -80,12 +80,12 @@ begin
   end;
 end;
 
-function TFastPrintSpool.ToPrnLn(s: string): Boolean;
+function TFastDeviceSpool.ToPrnLn(s: string): Boolean;
 begin
   Result := ToPrn(s + #13#10);
 end;
 
-function TFastPrintSpool.ToPrn(s: string): Boolean;
+function TFastDeviceSpool.ToPrn(s: string): Boolean;
 var
   BytesWritten: DWORD;
   DataToPrint: AnsiString;
@@ -97,12 +97,12 @@ begin
   Result := True;
 end;
 
-procedure TFastPrintSpool.EndPrint;
+procedure TFastDeviceSpool.EndPrint;
 begin
   EndDocPrinter(FPrinterHandle);
 end;
 
-procedure TFastPrintSpool.EnumPrt(st: TStrings; var def: Integer);
+procedure TFastDeviceSpool.EnumPrt(st: TStrings; var def: Integer);
 type
   PPrInfoArr = ^TPrInfoArr;
   TPrInfoArr = array [0..0] of TPRINTERINFO2;

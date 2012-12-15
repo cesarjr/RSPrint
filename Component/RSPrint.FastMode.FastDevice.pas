@@ -1,9 +1,9 @@
-unit RSPrint.PrintThread.FastPrintDevice;
+unit RSPrint.FastMode.FastDevice;
 
 interface
 
 type
-  IFastPrintDevice = interface
+  IFastDevice = interface
     procedure BeginDoc;
     procedure Write(value: string);
     procedure WriteLn(value: string);

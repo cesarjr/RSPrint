@@ -34,12 +34,10 @@ contains
   RSPrint.Preview in 'RSPrint.Preview.pas',
   RSPrint.Preview.PrinterSetup in 'RSPrint.Preview.PrinterSetup.pas' {FrmPrinterSetup},
   RSPrint.Utils in 'RSPrint.Utils.pas',
-  RSPrint.RSPrintTray in 'RSPrint.RSPrintTray.pas',
-  RSPrint.PrintThread in 'RSPrint.PrintThread.pas',
+  RSPrint.FastMode in 'RSPrint.FastMode.pas',
   RSPrint.CommonTypes in 'RSPrint.CommonTypes.pas',
-  RSPrint.PrintThread.FastPrintDevice in 'RSPrint.PrintThread.FastPrintDevice.pas',
-  RSPrint.PrintThread.FastPrintSpool in 'RSPrint.PrintThread.FastPrintSpool.pas',
-  RSPrint.PrintThread.FastPrintNative in 'RSPrint.PrintThread.FastPrintNative.pas',
-  RSPrint.PrintThread.FastPrintFile in 'RSPrint.PrintThread.FastPrintFile.pas';
+  RSPrint.FastMode.FastDevice in 'RSPrint.FastMode.FastDevice.pas',
+  RSPrint.FastMode.FastDeviceSpool in 'RSPrint.FastMode.FastDeviceSpool.pas',
+  RSPrint.FastMode.FastDeviceFile in 'RSPrint.FastMode.FastDeviceFile.pas';
 
 end.

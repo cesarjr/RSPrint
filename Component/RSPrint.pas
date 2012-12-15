@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, CommDlg, Classes, Graphics, Controls, ExtCtrls, StdCtrls, Consts, ShellAPI, Menus,
-  Printers, ComCtrls, Forms, Dialogs, RSPrint.PrintThread, RSPrint.CommonTypes;
+  Printers, ComCtrls, Forms, Dialogs, RSPrint.CommonTypes;
 
 const
   RSPrintVersion = 'Versão 2.0';
@@ -35,7 +35,6 @@ type
     FTransliterate: Boolean;
     FWinFont: string;
     OldCloseQuery: procedure (Sender: TObject; var CanClose: Boolean) of object;
-    PrintThread: TPrintThread;
     FPageSize: TPageSize;
     FPageLength: byte;
     FReportName: String;
@@ -141,7 +140,7 @@ procedure Register;
 implementation
 
 uses
-  RSPrint.Preview, RSPrint.Utils, ComObj;
+  RSPrint.Preview, RSPrint.Utils, RSPrint.FastMode, ComObj;
 
 procedure Register;
 begin
@@ -164,7 +163,6 @@ begin
     TForm(AOwner).OnCloseQuery := FormCloseQuery;
   end;
 
-  PrintThread := nil;
   SetModel(EPSON_FX);
   SetFastPuerto('LPT1');
   FColumnas := 80;
@@ -1071,6 +1069,7 @@ var
   LV : pVertLine;
   LH : pHorizLine;
   Job : pPrintJob;
+  FastMode: TFastMode;
 begin
   if FModo = pmWindows then
   begin
@@ -1137,10 +1136,13 @@ begin
     Job.FTransliterate := Transliterate;
     Job.ControlCodes := FControlCodes;
 
-    if not FPrinterStatus.CurrentlyPrinting then
-      PrintThread := TPrintThread.Create(FPrinterStatus);
-    PrintThread.AddJob(Job);
-    PrintThread.Start;
+    FastMode := TFastMode.Create(FPrinterStatus);
+    try
+      FastMode.Print(Job);
+    finally
+      FastMode.Free;
+    end;
+
     Resultado := True;
   end;
 
@@ -1157,6 +1159,7 @@ var
   LV : PVertLine;
   LP : TList;
   Job : PPrintJob;
+  FastMode: TFastMode;
 begin // IMPRIMIR
   if FModo = pmWindows then
   begin
@@ -1226,11 +1229,12 @@ begin // IMPRIMIR
     Job.FTransliterate := Transliterate;
     Job.ControlCodes := FControlCodes;
 
-    if not FPrinterStatus.CurrentlyPrinting then
-      PrintThread := TPrintThread.Create(FPrinterStatus);
-
-    PrintThread.AddJob(Job);
-    PrintThread.Start;
+    FastMode := TFastMode.Create(FPrinterStatus);
+    try
+      FastMode.Print(Job);
+    finally
+      FastMode.Free;
+    end;
   end;
 end; // IMPRIMIR
 

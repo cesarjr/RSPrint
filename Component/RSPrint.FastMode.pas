@@ -1,24 +1,21 @@
-unit RSPrint.PrintThread;
+unit RSPrint.FastMode;
 
 interface
 
 uses
-  Classes, RSPrint.RSPrintTray, RSPrint.CommonTypes, RSPrint.PrintThread.FastPrintDevice;
+  Classes, RSPrint.CommonTypes, RSPrint.FastMode.FastDevice;
 
 type
-  TPrintThread = class(TThread)
+  TFastMode = class
   private const
     SINGLE_LINE = #196;
     DOUBLE_LINE = #205;
 
   private
     FJob: PPrintJob;
-    FJobs: TThreadList;
-    FTrayIcon: TRSPrintTray;
     FPrinterStatus: TPrinterStatus;
-    FFastPrintDevice: IFastPrintDevice;
+    FFastDevice: IFastDevice;
 
-    procedure SetJobName;
     procedure InflateLineWithSpaces(var line: string; maxCol: Byte);
     procedure PageContinuosJump;
     procedure ProcessPauseIfNecessary;
@@ -28,52 +25,56 @@ type
     procedure PrintVerticalLines(page: PPage; var lineToPrint: string; currentLine: Integer);
     procedure PrintCurrentLine(page: PPage; var ultimaEscritura: Integer; font: TFastFont; var lineToPrint: string; const currentLine: Integer);
 
-  protected
-    procedure Execute; override;
-    function PrintFast(number: integer) : boolean;
+    procedure PrintJob;
+    procedure DisposeJob;
+    function PrintPage(number: integer): Boolean;
 
   public
-    constructor Create(printerStatus: TPrinterStatus); reintroduce;
+    constructor Create(printerStatus: TPrinterStatus);
     destructor Destroy; override;
 
-    procedure AddJob(job: PPrintJob);
+    procedure Print(job: PPrintJob);
   end;
 
 implementation
 
 uses
-  SysUtils, Windows, Printers, RSPrint.Utils, RSPrint.PrintThread.FastPrintFile, RSPrint.PrintThread.FastPrintSpool,
+  SysUtils, Windows, Printers, RSPrint.Utils, RSPrint.FastMode.FastDeviceFile, RSPrint.FastMode.FastDeviceSpool,
   Dialogs;
 
-constructor TPrintThread.Create(printerStatus: TPrinterStatus);
+constructor TFastMode.Create(printerStatus: TPrinterStatus);
 begin
-  inherited Create(True);
-
-  FJobs := TThreadList.Create;
-  FTrayIcon := TRSPrintTray.Create(nil, FPrinterStatus);
   FPrinterStatus := printerStatus;
 
-  FreeOnTerminate := True;
   FPrinterStatus.StartPrinting;
 
-  FFastPrintDevice := TFastPrintSpool.Create;
-  //FFastPrintDevice := TFastPrintFile.Create;
+  FFastDevice := TFastDeviceSpool.Create;
+  //FFastDevice := TFastDeviceFile.Create;
 end;
 
-destructor TPrintThread.Destroy;
+destructor TFastMode.Destroy;
 begin
-  FJobs.Free;
   FPrinterStatus.CurrentlyPrinting := False;
 
   inherited;
 end;
 
-procedure TPrintThread.AddJob(job: PPrintJob);
+procedure TFastMode.Print(job: PPrintJob);
 begin
-  FJobs.Add(job);
+  FJob := job;
+
+  FPrinterStatus.PrintingJobName := FJob^.Name;
+
+  ProcessPauseIfNecessary;
+
+  PrintJob;
+  DisposeJob;
+
+  FPrinterStatus.PrintingCanceled := False;
+  FPrinterStatus.PrintingJobName := '';
 end;
 
-procedure TPrintThread.PrintVerticalLines(page: PPage; var lineToPrint: string; currentLine: Integer);
+procedure TFastMode.PrintVerticalLines(page: PPage; var lineToPrint: string; currentLine: Integer);
 var
   VerticalLine: PVertLine;
   Contador: Integer;
@@ -289,9 +290,11 @@ begin
       end
       else
       begin
-        // ES UNA LINEA DEL MEDIO
+        // ES UNA LINEA DEL MEDIO
+
         if lineToPrint[VerticalLine^.Col] = 'Ä' then
-        // LINEA HORIZONTAL SIMPLE
+        // LINEA HORIZONTAL SIMPLE
+
         begin
           if (VerticalLine^.Col > 0) and (ord(lineToPrint[VerticalLine^.Col - 1]) in [192, 193, 194, 195, 196, 197, 199, 208, 210, 211, 214, 215, 218]) then
           begin
@@ -391,7 +394,7 @@ begin
   end;
 end;
 
-procedure TPrintThread.PrintHorizontalLines(currentLine: Integer; page: PPage; var lineToPrint: string);
+procedure TFastMode.PrintHorizontalLines(currentLine: Integer; page: PPage; var lineToPrint: string);
 var
   HorizontalLine: PHorizLine;
   I: Integer;
@@ -419,13 +422,13 @@ begin
   end;
 end;
 
-procedure TPrintThread.InflateLineWithSpaces(var line: string; maxCol: Byte);
+procedure TFastMode.InflateLineWithSpaces(var line: string; maxCol: Byte);
 begin
   while Length(line) < maxCol do
     line := line + ' ';
 end;
 
-procedure TPrintThread.PrintControlCodes(codeSequence: string);
+procedure TFastMode.PrintControlCodes(codeSequence: string);
 var
   CodesToPrint: TStringList;
   CodeToPrint: Byte;
@@ -442,102 +445,66 @@ begin
     for NextCode := 0 to CodesToPrint.Count-1 do
     begin
       CodeToPrint := StrToInt(CodesToPrint[NextCode]);
-      FFastPrintDevice.Write(Chr(CodeToPrint));
+      FFastDevice.Write(Chr(CodeToPrint));
     end;
   finally
     CodesToPrint.Free;
   end;
 end;
 
-procedure TPrintThread.Execute;
+procedure TFastMode.PrintJob;
 var
   Bien: Boolean;
   Copias: Integer;
   I: Integer;
-  List: TList;
 begin
-  List := FJobs.LockList;
-
-  if List.Count > 0 then
-  begin
-    FJob := pPrintJob(List[0]);
-    FPrinterStatus.PrintingJobName := FJob^.Name;
-  end
-  else
-  begin
-    FJob := nil;
-    FPrinterStatus.PrintingJobName := '';
-  end;
-  Synchronize(SetJobName);
-
-  FJobs.UnlockList;
-
-  ProcessPauseIfNecessary;
-
-  while (FJob <> nil) do
-  begin
-    Bien := True;
-    for Copias := 1 to FJob^.FCopias do
-      for I := 1 to FJob^.LasPaginas.Count do
-        if not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll and Bien then
-          Bien := Bien and PrintFast(I);
-
-    while FJob^.LasPaginas.Count > 0 do
-    begin
-      while PPage(FJob^.LasPaginas[0])^.Writed.Count > 0 do
-      begin
-        Dispose(pWrite(PPage(FJob^.LasPaginas[0])^.Writed[0]));
-        PPage(FJob^.LasPaginas[0])^.Writed.Delete(0);
-      end;
-      PPage(FJob^.LasPaginas[0])^.Writed.Free;
-
-      while PPage(FJob^.LasPaginas[0])^.VerticalLines.Count > 0 do
-      begin
-        Dispose(pVertLine(PPage(FJob^.LasPaginas[0])^.VerticalLines[0]));
-        PPage(FJob^.LasPaginas[0])^.VerticalLines.Delete(0);
-      end;
-      PPage(FJob^.LasPaginas[0])^.VerticalLines.Free;
-
-      while PPage(FJob^.LasPaginas[0])^.HorizLines.Count > 0 do
-      begin
-        Dispose(pHorizLine(PPage(FJob^.LasPaginas[0])^.HorizLines[0]));
-        PPage(FJob^.LasPaginas[0])^.HorizLines.Delete(0);
-      end;
-      PPage(FJob^.LasPaginas[0])^.HorizLines.Free;
-
-      Dispose(PPage(FJob^.LasPaginas[0]));
-      FJob^.LasPaginas.Delete(0);
-    end;
-    FJob^.LasPaginas.Free;
-
-    Dispose(FJob);
-    FPrinterStatus.PrintingCanceled := False;
-    List := FJobs.LockList;
-    List.Delete(0);
-
-    if List.Count > 0 then
-    begin
-      FJob := pPrintJob(List[0]);
-      FPrinterStatus.PrintingJobName := FJob^.Name;
-    end
-    else
-    begin
-      FJob := nil;
-      FPrinterStatus.PrintingJobName := '';
-    end;
-  end;
-  Synchronize(SetJobName);
-
-  FPrinterStatus.PrintingJobName := '';
+  Bien := True;
+  for Copias := 1 to FJob^.FCopias do
+    for I := 1 to FJob^.LasPaginas.Count do
+      if not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll and Bien then
+        Bien := Bien and PrintPage(I);
 end;
 
-procedure TPrintThread.ProcessPauseIfNecessary;
+procedure TFastMode.DisposeJob;
+begin
+  while FJob^.LasPaginas.Count > 0 do
+  begin
+    while PPage(FJob^.LasPaginas[0])^.Writed.Count > 0 do
+    begin
+      Dispose(pWrite(PPage(FJob^.LasPaginas[0])^.Writed[0]));
+      PPage(FJob^.LasPaginas[0])^.Writed.Delete(0);
+    end;
+    PPage(FJob^.LasPaginas[0])^.Writed.Free;
+
+    while PPage(FJob^.LasPaginas[0])^.VerticalLines.Count > 0 do
+    begin
+      Dispose(pVertLine(PPage(FJob^.LasPaginas[0])^.VerticalLines[0]));
+      PPage(FJob^.LasPaginas[0])^.VerticalLines.Delete(0);
+    end;
+    PPage(FJob^.LasPaginas[0])^.VerticalLines.Free;
+
+    while PPage(FJob^.LasPaginas[0])^.HorizLines.Count > 0 do
+    begin
+      Dispose(pHorizLine(PPage(FJob^.LasPaginas[0])^.HorizLines[0]));
+      PPage(FJob^.LasPaginas[0])^.HorizLines.Delete(0);
+    end;
+    PPage(FJob^.LasPaginas[0])^.HorizLines.Free;
+
+    Dispose(PPage(FJob^.LasPaginas[0]));
+    FJob^.LasPaginas.Delete(0);
+  end;
+  FJob^.LasPaginas.Free;
+
+  Dispose(FJob);
+end;
+
+procedure TFastMode.ProcessPauseIfNecessary;
 begin
   while FPrinterStatus.PrintingPaused and not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll do
     Sleep(100);
 end;
 
-function TPrintThread.PrintFast(number: integer): boolean;
+function TFastMode.PrintPage(number: integer): boolean;
 var
   CurrentLine: Integer;
   LineToPrint: string;
@@ -550,13 +517,13 @@ begin
 
   try
     Resultado := True;
-    FFastPrintDevice.BeginDoc;
+    FFastDevice.BeginDoc;
 
     PrintControlCodes(FJob.ControlCodes.Reset);
     PrintControlCodes(FJob.ControlCodes.Setup);
 
     PrintControlCodes(FJob.ControlCodes.SelLength);
-    FFastPrintDevice.Write(#84);
+    FFastDevice.Write(#84);
 
 
     Font := FJob.FFuente;
@@ -595,7 +562,7 @@ begin
     if (FJob.PageSize = pzContinuous) and (FJob.PageLength = 0) then
       PageContinuosJump
     else
-      FFastPrintDevice.Write(#12);
+      FFastDevice.Write(#12);
   except
     on e: exception do
     begin
@@ -604,19 +571,19 @@ begin
     end;
   end;
 
-  FFastPrintDevice.EndDoc;
-  PrintFast := Resultado;
+  FFastDevice.EndDoc;
+  PrintPage := Resultado;
 end;
 
-procedure TPrintThread.PageContinuosJump;
+procedure TFastMode.PageContinuosJump;
 var
   LinesToJump: Integer;
 begin
   for LinesToJump := 1 to FJob.PageContinuousJump do
-    FFastPrintDevice.WriteLn('');
+    FFastDevice.WriteLn('');
 end;
 
-procedure TPrintThread.PrintCurrentLine(page: PPage; var ultimaEscritura: Integer; font: TFastFont; var lineToPrint: string; const currentLine: Integer);
+procedure TFastMode.PrintCurrentLine(page: PPage; var ultimaEscritura: Integer; font: TFastFont; var lineToPrint: string; const currentLine: Integer);
 var
   Escritura: PWrite;
   i: Integer;
@@ -648,7 +615,7 @@ begin
     end;
     if FJob.FTransliterate and (lineToPrint <> '') then
       CharToOemBuff(PChar(@lineToPrint[1]), PansiChar(@lineToPrint[1]),Length(lineToPrint));
-    FFastPrintDevice.WriteLn(lineToPrint);
+    FFastDevice.WriteLn(lineToPrint);
   end
   else
   begin
@@ -684,7 +651,7 @@ begin
             else
               PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
           end;
-          FFastPrintDevice.Write(lineToPrint[Columna]);
+          FFastDevice.Write(lineToPrint[Columna]);
           Inc(Columna);
         end;
         if Escritura^.FastFont <> font then
@@ -709,11 +676,11 @@ begin
         Txt := Escritura^.Text;
         if FJob.FTransliterate and (Txt<>'') then
           CharToOemBuff(PChar(@Txt[1]), PansiChar(@Txt[1]),Length(Txt));
-        FFastPrintDevice.Write(Txt);
+        FFastDevice.Write(Txt);
         if (Compress in font) and not(Compress in FJob.FFuente) then
         begin
           for i := 1 to Length(Escritura^.Text) do
-            FFastPrintDevice.Write(#8);
+            FFastDevice.Write(#8);
           if (Length(Escritura^.Text)*6) mod 10 = 0 then
             i := Columna + (Length(Escritura^.Text) *6) div 10
           else
@@ -736,7 +703,7 @@ begin
             PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
           while Columna <= i do
           begin
-            FFastPrintDevice.Write(#32);
+            FFastDevice.Write(#32);
             Inc(Columna);
           end;
         end
@@ -771,10 +738,10 @@ begin
       end;
       while Columna <= Length(lineToPrint) do
       begin
-        FFastPrintDevice.Write(lineToPrint[Columna]);
+        FFastDevice.Write(lineToPrint[Columna]);
         Inc(Columna);
       end;
-      FFastPrintDevice.WriteLn('');
+      FFastDevice.WriteLn('');
     end
     else
     begin
@@ -802,21 +769,8 @@ begin
         AnsiToOemBuff(PansiChar(lineToPrint[1]), PansiChar(lineToPrint[1]), Length(lineToPrint));
 
       //FFastPrintDevice.WriteLn(PChar(lineToPrint));
-      FFastPrintDevice.WriteLn(lineToPrint);
+      FFastDevice.WriteLn(lineToPrint);
     end;
-  end;
-end;
-
-procedure TPrintThread.SetJobName;
-begin
-  if FJob = nil then
-    FTrayIcon.Tip :=  ''
-  else
-  begin
-    if FPrinterStatus.PrintingPaused then
-      FTrayIcon.Tip := 'Em pausa ' + FPrinterStatus.PrintingJobName
-    else
-      FTrayIcon.Tip := 'Imprimindo ' + FPrinterStatus.PrintingJobName;
   end;
 end;
 
