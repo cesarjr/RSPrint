@@ -3,7 +3,7 @@ unit RSPrint.CommonTypes;
 interface
 
 uses
-  Classes, Graphics;
+  Classes;
 
 type
 
@@ -45,60 +45,6 @@ type
     Setup: string;
     Reset: string;
     SelLength: string;
-  end;
-
-  PPage = ^TPage;
-  TPage = record
-    Writed: TList;
-    VerticalLines: TList;
-    HorizLines: TList;
-    PrintedLines: Byte;
-    Graphics: TList;
-  end;
-
-  PGraphic = ^TGraphic;
-  TGraphic = record
-    Col: Single;
-    Line: Single;
-    Picture: TPicture;
-  end;
-
-  PWrite = ^TWrite;
-  TWrite = record
-    Col: Byte;
-    Line: Byte;
-    Font: TFastFont;
-    Text: string;
-  end;
-
-  PHorizLine = ^THorizLine;
-  THorizLine = record
-    Col1: Byte;
-    Col2: Byte;
-    Line: Byte;
-    Kind: TLineType;
-  end;
-
-  PVertLine = ^TVertLine;
-  TVertLine = record
-    Col: Byte;
-    Line1: Byte;
-    Line2: Byte;
-    Kind: TLineType;
-  end;
-
-  PPrintJob = ^TPrintJob;
-  TPrintJob = record
-    Name: string;
-    PageSize: TPageSize;
-    PageContinuousJump: Byte;
-    PageLength: Byte;
-    LasPaginas: TList;
-    Copias: Integer;
-    DefaultFont: TFastFont;
-    Lineas: Integer;
-    Transliterate: Boolean;
-    ControlCodes: TControlCodes;
   end;
 
   TPrinterStatus = record

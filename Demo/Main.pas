@@ -12,8 +12,10 @@ type
     btnPrint: TButton;
     cmbMode: TComboBox;
     lblMode: TLabel;
+    Button1: TButton;
     procedure btnPreviewClick(Sender: TObject);
     procedure btnPrintClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
 
   private
     procedure GenerateData;
@@ -44,6 +46,12 @@ begin
   RSPrint.PrintAll;
 end;
 
+
+procedure TFrmMain.Button1Click(Sender: TObject);
+begin
+  GenerateData;
+  RSPrint.PrintPage(2);
+end;
 
 procedure TFrmMain.GenerateData;
 var

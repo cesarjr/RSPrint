@@ -2,7 +2,7 @@ object FrmMain: TFrmMain
   Left = 330
   Top = 106
   Caption = 'RSPrint Demo App'
-  ClientHeight = 166
+  ClientHeight = 197
   ClientWidth = 197
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -35,7 +35,7 @@ object FrmMain: TFrmMain
     Top = 127
     Width = 177
     Height = 25
-    Caption = 'Print'
+    Caption = 'Print All Pages'
     TabOrder = 1
     OnClick = btnPrintClick
   end
@@ -52,6 +52,15 @@ object FrmMain: TFrmMain
       'rmFast'
       'rmWindows'
       'rmDefault')
+  end
+  object Button1: TButton
+    Left = 8
+    Top = 158
+    Width = 177
+    Height = 25
+    Caption = 'Print Second Page'
+    TabOrder = 3
+    OnClick = Button1Click
   end
   object RSPrint: TRSPrinter
     PageSize = pzLegal
