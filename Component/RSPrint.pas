@@ -482,7 +482,7 @@ begin
     Graf.Line := line;
     Graf.Picture.Metafile.Assign(picture);
 
-    FPages.Items[PaginaActual].Graphics.Add(Graf);
+    FPages.Items[PaginaActual].Images.Add(Graf);
   end;
 end;
 
@@ -636,9 +636,9 @@ begin
 
           if mode = pmWindows then
             begin
-              For DA := 0 to Pagina.Graphics.Count-1 do
+              For DA := 0 to Pagina.Images.Count-1 do
                 begin
-                  Grafico := Pagina.Graphics[DA];
+                  Grafico := Pagina.Images[DA];
                   Draw(Round(AnchoDeColumna*(Grafico.Col)),Round(FWinSupMargin+AltoDeLinea*(Grafico.Line)),Grafico.Picture.Graphic);
                 end;
             end;
@@ -822,10 +822,10 @@ begin
           Pagina := FPages.Items[number-1];
           if mode = pmWindows then
             begin
-              For DA := 0 to Pagina.Graphics.Count-1 do
+              For DA := 0 to Pagina.Images.Count-1 do
                 if not Cancelado then
                   begin
-                    Grafico := Pagina.Graphics[DA];
+                    Grafico := Pagina.Images[DA];
                     Draw(Round(MargenIzquierdo+AnchoDeColumna*(Grafico.Col)),Round(MargenSuperior+AltoDeLinea*(Grafico.Line))+1,Grafico.Picture.Graphic);
                   end;
             end;

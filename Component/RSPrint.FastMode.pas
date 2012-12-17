@@ -48,8 +48,8 @@ begin
 
   FPrinterStatus.StartPrinting;
 
-  //FFastDevice := TFastDeviceSpool.Create;
-  FFastDevice := TFastDeviceFile.Create;
+  FFastDevice := TFastDeviceSpool.Create;
+  //FFastDevice := TFastDeviceFile.Create;
 end;
 
 destructor TFastMode.Destroy;

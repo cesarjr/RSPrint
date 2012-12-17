@@ -34,7 +34,7 @@ type
     VerticalLines: TList<TVerticalLine>;
     HorizontalLines: TList<THorizontalLine>;
     PrintedLines: Byte;
-    Graphics: TList<TImg>;
+    Images: TList<TImg>;
 
     constructor Create;
     destructor Destroy; override;
@@ -49,7 +49,7 @@ begin
   WrittenText := TList<TWrittenText>.Create;
   VerticalLines := TList<TVerticalLine>.Create;
   HorizontalLines := TList<THorizontalLine>.Create;
-  Graphics := TObjectList<TImg>.Create(True);
+  Images := TObjectList<TImg>.Create(True);
 end;
 
 destructor TPage.Destroy;
@@ -57,7 +57,7 @@ begin
   WrittenText.Free;
   VerticalLines.Free;
   HorizontalLines.Free;
-  Graphics.Free;
+  Images.Free;
 
   inherited;
 end;
