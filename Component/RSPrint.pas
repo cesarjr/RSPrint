@@ -30,12 +30,11 @@ type
     PaginaActual: Integer;
     FShowPreview: TRSPrinterPreview;
     FZoom: TInitialZoom;
-    FTitulo: string;
+    FTitle: string;
     FWinPrinter: string;        // NOMBRE DE LA IMPRESORA EN WINDOWS
     FTransliterate: Boolean;
     FPageSize: TPageSize;
     FPageLength: Byte;
-    FReportName: string;
     FContinuousJump: Byte;
     Cancelado: Boolean;
     FPrinterStatus: TPrinterStatus;
@@ -110,10 +109,9 @@ type
     property Mode: TPrinterMode read FMode write FMode default pmFast;
     property Columnas: Byte read FColumnas default 80;
     property Paginas: Integer read GetPaginas default 0;
-    property ReportName: string read FReportName write FReportName;
     property Zoom: TInitialZoom read FZoom write FZoom default zWidth;
     property Preview: TRSPrinterPreview read FShowPreview write FShowPreview;
-    property Title: string read FTitulo write FTitulo;
+    property Title: string read FTitle write FTitle;
     property Copies: Integer read fCopias write fCopias default 1;
     property OnPrinterError: TNotifyEvent read FOnPrinterError write FOnPrinterError;
     property PrintingWidth: Integer read GetPrintingWidth;
@@ -1044,7 +1042,7 @@ begin
   if FMode = pmWindows then
   begin
    try
-     Printer.Title := Title + ' (Página Nº'+' '+IntToStr(number)+')';
+     Printer.Title := FTitle + ' (Página Nº'+' '+IntToStr(number)+')';
      Printer.Copies := fCopias;
      Printer.BeginDoc;
      Img := TMetaFile.Create;
@@ -1094,7 +1092,7 @@ begin
     end;
 
     New(Job);
-    Job.Name := Title + 'Pág. '+IntToStr(number-1);
+    Job.Name := FTitle;
     Job.PageSize := PageSize;
     Job.PageContinuousJump := PageContinuousJump;
     Job.PageLength := PageLength;
@@ -1187,7 +1185,7 @@ begin
     end;
 
     New(Job);
-    Job.Name := Title;
+    Job.Name := FTitle;
     Job.PageSize := PageSize;
     Job.PageContinuousJump := PageContinuousJump;
     Job.PageLength := PageLength;

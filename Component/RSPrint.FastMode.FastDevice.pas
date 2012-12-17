@@ -4,7 +4,7 @@ interface
 
 type
   IFastDevice = interface
-    procedure BeginDoc;
+    procedure BeginDoc(documentName: string);
     procedure BeginPage;
     procedure Write(value: string);
     procedure WriteLn(value: string);

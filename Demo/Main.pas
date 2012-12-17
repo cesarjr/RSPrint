@@ -57,7 +57,7 @@ begin
     LoadNames(NameList);
 
     RSPrint.Mode := TPrinterMode(cmbMode.ItemIndex);
-    RSPrint.ReportName := 'RSPrint Demo App';
+    RSPrint.Title := 'RSPrint Demo App';
     RSPrint.SetModelName('Epson FX/LX/LQ');
 
     RSPrint.BeginDoc;

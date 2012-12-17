@@ -49,8 +49,8 @@ begin
 
   FPrinterStatus.StartPrinting;
 
-  //FFastDevice := TFastDeviceSpool.Create;
-  FFastDevice := TFastDeviceFile.Create;
+  FFastDevice := TFastDeviceSpool.Create;
+  //FFastDevice := TFastDeviceFile.Create;
 end;
 
 destructor TFastMode.Destroy;
@@ -90,7 +90,7 @@ begin
   Bien := True;
   for Copias := 1 to FJob^.Copias do
   begin
-    FFastDevice.BeginDoc;
+    FFastDevice.BeginDoc(FJob^.Name);
 
     for I := 1 to FJob^.LasPaginas.Count do
       if not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll and Bien then

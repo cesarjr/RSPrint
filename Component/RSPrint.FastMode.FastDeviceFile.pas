@@ -12,7 +12,7 @@ type
     FFile: TextFile;
 
   public
-    procedure BeginDoc;
+    procedure BeginDoc(documentName: string);
     procedure BeginPage;
     procedure Write(value: string);
     procedure WriteLn(value: string);
@@ -25,7 +25,7 @@ implementation
 uses
   SysUtils;
 
-procedure TFastDeviceFile.BeginDoc;
+procedure TFastDeviceFile.BeginDoc(documentName: string);
 var
   FileName: string;
 begin
