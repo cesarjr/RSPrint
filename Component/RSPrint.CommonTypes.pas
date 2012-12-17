@@ -52,38 +52,38 @@ type
     Writed: TList;
     VerticalLines: TList;
     HorizLines: TList;
-    PrintedLines: byte;
+    PrintedLines: Byte;
     Graphics: TList;
   end;
 
   PGraphic = ^TGraphic;
   TGraphic = record
-    Col: single;
-    Line: single;
+    Col: Single;
+    Line: Single;
     Picture: TPicture;
   end;
 
   PWrite = ^TWrite;
   TWrite = record
-    Col: byte;
-    Line: byte;
-    FastFont: TFastFont;
+    Col: Byte;
+    Line: Byte;
+    Font: TFastFont;
     Text: string;
   end;
 
   PHorizLine = ^THorizLine;
   THorizLine = record
-    Col1: byte;
-    Col2: byte;
-    Line: byte;
+    Col1: Byte;
+    Col2: Byte;
+    Line: Byte;
     Kind: TLineType;
   end;
 
   PVertLine = ^TVertLine;
   TVertLine = record
-    Col: byte;
-    Line1: byte;
-    Line2: byte;
+    Col: Byte;
+    Line1: Byte;
+    Line2: Byte;
     Kind: TLineType;
   end;
 
@@ -92,13 +92,12 @@ type
     Name: string;
     PageSize: TPageSize;
     PageContinuousJump: Byte;
-    PageLength: byte;
+    PageLength: Byte;
     LasPaginas: TList;
-    FCopias: integer;
-    FFuente: TFastFont;
-    FPort: string;
-    FLineas: integer;
-    FTransliterate: boolean;
+    Copias: Integer;
+    DefaultFont: TFastFont;
+    Lineas: Integer;
+    Transliterate: Boolean;
     ControlCodes: TControlCodes;
   end;
 
@@ -107,7 +106,7 @@ type
     PrintingCancelAll: Boolean;
     PrintingPaused: Boolean;
     PrintingJobName: string;
-    CurrentlyPrinting : boolean;
+    CurrentlyPrinting: boolean;
 
     procedure CancelPrinting;
     procedure CancelAllPrinting;

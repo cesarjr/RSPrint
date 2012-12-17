@@ -369,7 +369,6 @@ begin
         TRSPrinter(RSPrinter).PageWidthP := TRSPrinter(RSPrinter).PageWidth/GetDeviceCaps(Printer.Handle, LOGPIXELSX);
         TRSPrinter(RSPrinter).PageHeightP := TRSPrinter(RSPrinter).PageHeight/GetDeviceCaps(Printer.Handle, LOGPIXELSY);
         Printer.GetPrinter(ADevice, ADriver, APort, DeviceMode);
-        TRSPrinter(RSPrinter).WinPort := APort;
         TRSPrinter(RSPrinter).WinPrinter := ADevice;
 
         if TRSPrinter(RSPrinter).Lines <> Trunc(TRSPrinter(RSPrinter).PageHeightP*6)-4 then

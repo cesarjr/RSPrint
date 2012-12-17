@@ -16,7 +16,6 @@ type
     FPrinterStatus: TPrinterStatus;
     FFastDevice: IFastDevice;
 
-    procedure InflateLineWithSpaces(var line: string; maxCol: Byte);
     procedure PageContinuosJump;
     procedure ProcessPauseIfNecessary;
 
@@ -26,8 +25,10 @@ type
     procedure PrintCurrentLine(page: PPage; var ultimaEscritura: Integer; font: TFastFont; var lineToPrint: string; const currentLine: Integer);
 
     procedure PrintJob;
-    procedure DisposeJob;
     function PrintPage(number: integer): Boolean;
+
+    procedure DisposeJob;
+    procedure PrintFontCodes(font: TFastFont);
 
   public
     constructor Create(printerStatus: TPrinterStatus);
@@ -48,8 +49,8 @@ begin
 
   FPrinterStatus.StartPrinting;
 
-  FFastDevice := TFastDeviceSpool.Create;
-  //FFastDevice := TFastDeviceFile.Create;
+  //FFastDevice := TFastDeviceSpool.Create;
+  FFastDevice := TFastDeviceFile.Create;
 end;
 
 destructor TFastMode.Destroy;
@@ -74,6 +75,108 @@ begin
   FPrinterStatus.PrintingJobName := '';
 end;
 
+procedure TFastMode.ProcessPauseIfNecessary;
+begin
+  while FPrinterStatus.PrintingPaused and not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll do
+    Sleep(100);
+end;
+
+procedure TFastMode.PrintJob;
+var
+  Bien: Boolean;
+  Copias: Integer;
+  I: Integer;
+begin
+  Bien := True;
+  for Copias := 1 to FJob^.Copias do
+  begin
+    FFastDevice.BeginDoc;
+
+    for I := 1 to FJob^.LasPaginas.Count do
+      if not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll and Bien then
+        Bien := Bien and PrintPage(I);
+
+    FFastDevice.EndDoc;
+  end;
+end;
+
+function TFastMode.PrintPage(number: integer): boolean;
+var
+  CurrentLine: Integer;
+  LineToPrint: string;
+  Page: PPage;
+  Font: TFastFont;
+  UltimaEscritura: Integer;
+begin
+  ProcessPauseIfNecessary;
+
+  try
+    Result := True;
+    FFastDevice.BeginPage;
+
+    PrintControlCodes(FJob.ControlCodes.Reset);
+    PrintControlCodes(FJob.ControlCodes.Setup);
+
+    PrintControlCodes(FJob.ControlCodes.SelLength);
+    FFastDevice.Write(#84);
+
+    Font := FJob.DefaultFont;
+    PrintFontCodes(Font);
+
+    UltimaEscritura := 0;
+    Page := FJob.LasPaginas.Items[number-1];
+    CurrentLine := 1;
+    while (CurrentLine < TUtils.Min(Page.PrintedLines, FJob.Lineas)) and (not FPrinterStatus.PrintingCanceled) and not (FPrinterStatus.PrintingCancelAll) do
+    begin
+      LineToPrint := '';
+
+      PrintHorizontalLines(CurrentLine, Page, LineToPrint);
+      PrintVerticalLines(Page, LineToPrint, CurrentLine);
+
+      PrintCurrentLine(Page, UltimaEscritura, Font, LineToPrint, CurrentLine);
+      Inc(CurrentLine);
+
+      ProcessPauseIfNecessary;
+    end;
+
+    if (FJob.PageSize = pzContinuous) and (FJob.PageLength = 0) then
+      PageContinuosJump
+    else
+      FFastDevice.Write(#12);
+
+    FFastDevice.EndPage;
+  except
+    on e: exception do
+    begin
+      ShowMessage(e.Message);
+      Result := False;
+    end;
+  end;
+end;
+
+procedure TFastMode.PrintFontCodes(font: TFastFont);
+begin
+  PrintControlCodes(FJob.ControlCodes.Normal);
+
+  if Bold in Font then
+    PrintControlCodes(FJob.ControlCodes.Bold);
+
+  if Italic in Font then
+    PrintControlCodes(FJob.ControlCodes.Italic);
+
+  if DobleWide in Font then
+    PrintControlCodes(FJob.ControlCodes.Wide)
+  else if Compress in Font then
+    PrintControlCodes(FJob.ControlCodes.CondensedON)
+  else
+    PrintControlCodes(FJob.ControlCodes.CondensedOFF);
+
+  if Underline in Font then
+    PrintControlCodes(FJob.ControlCodes.UnderlineON)
+  else
+    PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+end;
+
 procedure TFastMode.PrintVerticalLines(page: PPage; var lineToPrint: string; currentLine: Integer);
 var
   VerticalLine: PVertLine;
@@ -86,7 +189,7 @@ begin
     if (VerticalLine^.Line1 <= currentLine) and (VerticalLine^.Line2 >= currentLine) then
     begin
       // LA LINEA PASA POR ESTA LINEA
-      InflateLineWithSpaces(lineToPrint, VerticalLine^.Col);
+      TUtils.InflateLineWithSpaces(lineToPrint, VerticalLine^.Col);
       if VerticalLine^.Line1 = currentLine then
       begin
         // ES LA PRIMER LINEA
@@ -407,7 +510,7 @@ begin
     // ES EN ESTA LINEA
     if HorizontalLine^.Line = currentLine then
     begin
-      InflateLineWithSpaces(lineToPrint, HorizontalLine^.Col2);
+      TUtils.InflateLineWithSpaces(lineToPrint, HorizontalLine^.Col2);
       if HorizontalLine^.Kind = ltSingle then
       begin
         for I := HorizontalLine^.Col1 to HorizontalLine^.Col2 do
@@ -420,12 +523,6 @@ begin
       end;
     end;
   end;
-end;
-
-procedure TFastMode.InflateLineWithSpaces(var line: string; maxCol: Byte);
-begin
-  while Length(line) < maxCol do
-    line := line + ' ';
 end;
 
 procedure TFastMode.PrintControlCodes(codeSequence: string);
@@ -450,19 +547,6 @@ begin
   finally
     CodesToPrint.Free;
   end;
-end;
-
-procedure TFastMode.PrintJob;
-var
-  Bien: Boolean;
-  Copias: Integer;
-  I: Integer;
-begin
-  Bien := True;
-  for Copias := 1 to FJob^.FCopias do
-    for I := 1 to FJob^.LasPaginas.Count do
-      if not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll and Bien then
-        Bien := Bien and PrintPage(I);
 end;
 
 procedure TFastMode.DisposeJob;
@@ -498,83 +582,6 @@ begin
   Dispose(FJob);
 end;
 
-procedure TFastMode.ProcessPauseIfNecessary;
-begin
-  while FPrinterStatus.PrintingPaused and not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll do
-    Sleep(100);
-end;
-
-function TFastMode.PrintPage(number: integer): boolean;
-var
-  CurrentLine: Integer;
-  LineToPrint: string;
-  Page: PPage;
-  Font: TFastFont;
-  UltimaEscritura: Integer;
-  Resultado: Boolean;
-begin
-  ProcessPauseIfNecessary;
-
-  try
-    Resultado := True;
-    FFastDevice.BeginDoc;
-
-    PrintControlCodes(FJob.ControlCodes.Reset);
-    PrintControlCodes(FJob.ControlCodes.Setup);
-
-    PrintControlCodes(FJob.ControlCodes.SelLength);
-    FFastDevice.Write(#84);
-
-
-    Font := FJob.FFuente;
-    PrintControlCodes(FJob.ControlCodes.Normal);
-    if Bold in Font then
-      PrintControlCodes(FJob.ControlCodes.Bold);
-    if Italic in Font then
-      PrintControlCodes(FJob.ControlCodes.Italic);
-    if DobleWide in Font then
-      PrintControlCodes(FJob.ControlCodes.Wide)
-    else if Compress in Font then
-      PrintControlCodes(FJob.ControlCodes.CondensedON)
-    else
-      PrintControlCodes(FJob.ControlCodes.CondensedOFF);
-    if Underline in Font then
-      PrintControlCodes(FJob.ControlCodes.UnderlineON)
-    else
-      PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
-
-    UltimaEscritura := 0;
-    Page := FJob.LasPaginas.Items[number-1];
-    CurrentLine := 1;
-    while (CurrentLine < TUtils.Min(Page.PrintedLines, FJob.FLineas)) and (not FPrinterStatus.PrintingCanceled) and not (FPrinterStatus.PrintingCancelAll) do
-    begin // SE IMPRIMEN TODAS LAS LINEAS
-      LineToPrint := '';
-
-      PrintHorizontalLines(CurrentLine, Page, LineToPrint);
-      PrintVerticalLines(Page, LineToPrint, CurrentLine);
-
-      PrintCurrentLine(Page, UltimaEscritura, Font, LineToPrint, CurrentLine);
-      Inc(CurrentLine);
-
-      ProcessPauseIfNecessary;
-    end;
-
-    if (FJob.PageSize = pzContinuous) and (FJob.PageLength = 0) then
-      PageContinuosJump
-    else
-      FFastDevice.Write(#12);
-  except
-    on e: exception do
-    begin
-      ShowMessage(e.Message);
-      Resultado := False;
-    end;
-  end;
-
-  FFastDevice.EndDoc;
-  PrintPage := Resultado;
-end;
-
 procedure TFastMode.PageContinuosJump;
 var
   LinesToJump: Integer;
@@ -594,26 +601,13 @@ var
 begin
   if page.Writed.Count = UltimaEscritura then
   begin
-    if font <> FJob.FFuente then
+    if font <> FJob.DefaultFont then
     begin // PONEMOS LA FUENTE POR DEFAULT
-      font := FJob.FFuente;
-      PrintControlCodes(FJob.ControlCodes.Normal);
-      if Bold in font then
-        PrintControlCodes(FJob.ControlCodes.Bold);
-      if Italic in font then
-        PrintControlCodes(FJob.ControlCodes.Italic);
-      if DobleWide in font then
-        PrintControlCodes(FJob.ControlCodes.Wide)
-      else if Compress in font then
-        PrintControlCodes(FJob.ControlCodes.CondensedON)
-      else
-        PrintControlCodes(FJob.ControlCodes.CondensedOFF);
-      if Underline in font then
-        PrintControlCodes(FJob.ControlCodes.UnderlineON)
-      else
-        PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+      font := FJob.DefaultFont;
+      PrintFontCodes(font);
     end;
-    if FJob.FTransliterate and (lineToPrint <> '') then
+
+    if FJob.Transliterate and (lineToPrint <> '') then
       CharToOemBuff(PChar(@lineToPrint[1]), PansiChar(@lineToPrint[1]),Length(lineToPrint));
     FFastDevice.WriteLn(lineToPrint);
   end
@@ -629,55 +623,30 @@ begin
       begin
         LineWasPrinted := True;
         UltimaEscritura := Contador;
-        InflateLineWithSpaces(lineToPrint, Escritura^.Col+Length(Escritura^.Text));
+        TUtils.InflateLineWithSpaces(lineToPrint, Escritura^.Col+Length(Escritura^.Text));
         while Columna < Escritura^.Col do
         begin
-          if (lineToPrint[Columna] <> #32) and (font <> FJob.FFuente) then
+          if (lineToPrint[Columna] <> #32) and (font <> FJob.DefaultFont) then
           begin // PONEMOS LA FUENTE POR DEFAULT
-            font := FJob.FFuente;
-            PrintControlCodes(FJob.ControlCodes.Normal);
-            if Bold in font then
-              PrintControlCodes(FJob.ControlCodes.Bold);
-            if Italic in font then
-              PrintControlCodes(FJob.ControlCodes.Italic);
-            if DobleWide in font then
-              PrintControlCodes(FJob.ControlCodes.Wide)
-            else if Compress in font then
-              PrintControlCodes(FJob.ControlCodes.CondensedON)
-            else
-              PrintControlCodes(FJob.ControlCodes.CondensedOFF);
-            if Underline in font then
-              PrintControlCodes(FJob.ControlCodes.UnderlineON)
-            else
-              PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+            font := FJob.DefaultFont;
+            PrintFontCodes(font);
           end;
+
           FFastDevice.Write(lineToPrint[Columna]);
           Inc(Columna);
         end;
-        if Escritura^.FastFont <> font then
+
+        if Escritura^.Font <> font then
         begin // PONEMOS LA FUENTE DEL TEXTO
-          font := Escritura^.FastFont;
-          PrintControlCodes(FJob.ControlCodes.Normal);
-          if Bold in font then
-            PrintControlCodes(FJob.ControlCodes.Bold);
-          if Italic in font then
-            PrintControlCodes(FJob.ControlCodes.Italic);
-          if DobleWide in font then
-            PrintControlCodes(FJob.ControlCodes.Wide)
-          else if Compress in font then
-            PrintControlCodes(FJob.ControlCodes.CondensedON)
-          else
-            PrintControlCodes(FJob.ControlCodes.CondensedOFF);
-          if Underline in font then
-            PrintControlCodes(FJob.ControlCodes.UnderlineON)
-          else
-            PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+          font := Escritura^.Font;
+          PrintFontCodes(font);
         end;
+
         Txt := Escritura^.Text;
-        if FJob.FTransliterate and (Txt<>'') then
+        if FJob.Transliterate and (Txt<>'') then
           CharToOemBuff(PChar(@Txt[1]), PansiChar(@Txt[1]),Length(Txt));
         FFastDevice.Write(Txt);
-        if (Compress in font) and not(Compress in FJob.FFuente) then
+        if (Compress in font) and not(Compress in FJob.DefaultFont) then
         begin
           for i := 1 to Length(Escritura^.Text) do
             FFastDevice.Write(#8);
@@ -685,22 +654,10 @@ begin
             i := Columna + (Length(Escritura^.Text) *6) div 10
           else
             i := Columna + (Length(Escritura^.Text) *6) div 10;
+
           font := font - [Compress];
-          PrintControlCodes(FJob.ControlCodes.Normal);
-          if Bold in font then
-            PrintControlCodes(FJob.ControlCodes.Bold);
-          if Italic in font then
-            PrintControlCodes(FJob.ControlCodes.Italic);
-          if DobleWide in font then
-            PrintControlCodes(FJob.ControlCodes.Wide)
-          else if Compress in font then
-            PrintControlCodes(FJob.ControlCodes.CondensedON)
-          else
-            PrintControlCodes(FJob.ControlCodes.CondensedOFF);
-          if Underline in font then
-            PrintControlCodes(FJob.ControlCodes.UnderlineON)
-          else
-            PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+          PrintFontCodes(font);
+
           while Columna <= i do
           begin
             FFastDevice.Write(#32);
@@ -717,58 +674,31 @@ begin
 
     if LineWasPrinted then
     begin
-      if font <> FJob.FFuente then
+      if font <> FJob.DefaultFont then
       begin // PONEMOS LA FUENTE POR DEFAULT
-        font := FJob.FFuente;
-        PrintControlCodes(FJob.ControlCodes.Normal);
-        if Bold in font then
-          PrintControlCodes(FJob.ControlCodes.Bold);
-        if Italic in font then
-          PrintControlCodes(FJob.ControlCodes.Italic);
-        if DobleWide in font then
-          PrintControlCodes(FJob.ControlCodes.Wide)
-        else if Compress in font then
-          PrintControlCodes(FJob.ControlCodes.CondensedON)
-        else
-          PrintControlCodes(FJob.ControlCodes.CondensedOFF);
-        if Underline in font then
-          PrintControlCodes(FJob.ControlCodes.UnderlineON)
-        else
-          PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+        font := FJob.DefaultFont;
+        PrintFontCodes(font);
       end;
+
       while Columna <= Length(lineToPrint) do
       begin
         FFastDevice.Write(lineToPrint[Columna]);
         Inc(Columna);
       end;
+
       FFastDevice.WriteLn('');
     end
     else
     begin
-      if font <> FJob.FFuente then
+      if font <> FJob.DefaultFont then
       begin // PONEMOS LA FUENTE POR DEFAULT
-        font := FJob.FFuente;
-        PrintControlCodes(FJob.ControlCodes.Normal);
-        if Bold in font then
-          PrintControlCodes(FJob.ControlCodes.Bold);
-        if Italic in font then
-          PrintControlCodes(FJob.ControlCodes.Italic);
-        if DobleWide in font then
-          PrintControlCodes(FJob.ControlCodes.Wide)
-        else if Compress in font then
-          PrintControlCodes(FJob.ControlCodes.CondensedON)
-        else
-          PrintControlCodes(FJob.ControlCodes.CondensedOFF);
-        if Underline in font then
-          PrintControlCodes(FJob.ControlCodes.UnderlineON)
-        else
-          PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+        font := FJob.DefaultFont;
+        PrintFontCodes(font);
       end;
 
-      if FJob.FTransliterate and (lineToPrint <> '') then
+      if FJob.Transliterate and (lineToPrint <> '') then
         AnsiToOemBuff(PansiChar(lineToPrint[1]), PansiChar(lineToPrint[1]), Length(lineToPrint));
 
-      //FFastPrintDevice.WriteLn(PChar(lineToPrint));
       FFastDevice.WriteLn(lineToPrint);
     end;
   end;

@@ -13,17 +13,15 @@ type
     FDevMode: TDeviceModeA;
     FPrinterJob: Dword;
 
-    procedure StartPrint(prtName, docName: string; copies: Integer);
-    procedure EndPrint;
-    function ToPrn(s: string): Boolean;
-    function ToPrnLn(s: string): Boolean;
-
     procedure EnumPrt(st: TStrings; var def: Integer);
+    procedure StartPrint(prtName, docName: string; copies: Integer);
 
   public
     procedure BeginDoc;
+    procedure BeginPage;
     procedure Write(value: string);
     procedure WriteLn(value: string);
+    procedure EndPage;
     procedure EndDoc;
   end;
 
@@ -45,61 +43,6 @@ begin
   finally
     ListaImpressoras.Free;
   end;
-end;
-
-procedure TFastDeviceSpool.EndDoc;
-begin
-  EndPrint;
-end;
-
-procedure TFastDeviceSpool.Write(value: string);
-begin
-  ToPrn(value);
-end;
-
-procedure TFastDeviceSpool.WriteLn(value: string);
-begin
-  ToPrnLn(value);
-end;
-
-procedure TFastDeviceSpool.StartPrint(prtName, docName: string; copies: Integer);
-var
-  DocInfo: PDocInfo1;
-begin
-  FDevMode.dmCopies := Copies;
-  FDevMode.dmFields := DM_COPIES;
-
-  if OpenPrinter(PChar(PrtName), FPrinterHandle, nil) then
-  begin
-    New(DocInfo);
-    DocInfo^.pDocName := PChar(DocName);
-    DocInfo^.pDatatype := 'RAW';
-    DocInfo^.pOutputFile := nil;
-
-    FPrinterJob := StartDocPrinter(FPrinterHandle, 1, DocInfo);
-  end;
-end;
-
-function TFastDeviceSpool.ToPrnLn(s: string): Boolean;
-begin
-  Result := ToPrn(s + #13#10);
-end;
-
-function TFastDeviceSpool.ToPrn(s: string): Boolean;
-var
-  BytesWritten: DWORD;
-  DataToPrint: AnsiString;
-begin
-  DataToPrint := AnsiString(s);
-
-  WritePrinter(FPrinterHandle, PAnsiChar(DataToPrint), Length(DataToPrint), BytesWritten);
-
-  Result := True;
-end;
-
-procedure TFastDeviceSpool.EndPrint;
-begin
-  EndDocPrinter(FPrinterHandle);
 end;
 
 procedure TFastDeviceSpool.EnumPrt(st: TStrings; var def: Integer);
@@ -136,6 +79,54 @@ begin
   finally
     FreeMem(buf);
   end;
+end;
+
+procedure TFastDeviceSpool.StartPrint(prtName, docName: string; copies: Integer);
+var
+  DocInfo: PDocInfo1;
+begin
+  FDevMode.dmCopies := Copies;
+  FDevMode.dmFields := DM_COPIES;
+
+  if OpenPrinter(PChar(PrtName), FPrinterHandle, nil) then
+  begin
+    New(DocInfo);
+    DocInfo^.pDocName := PChar(DocName);
+    DocInfo^.pDatatype := 'RAW';
+    DocInfo^.pOutputFile := nil;
+
+    FPrinterJob := StartDocPrinter(FPrinterHandle, 1, DocInfo);
+  end;
+end;
+
+procedure TFastDeviceSpool.BeginPage;
+begin
+  StartPagePrinter(FPrinterHandle);
+end;
+
+procedure TFastDeviceSpool.WriteLn(value: string);
+begin
+  Write(value + #13#10);
+end;
+
+procedure TFastDeviceSpool.Write(value: string);
+var
+  BytesWritten: DWORD;
+  DataToPrint: AnsiString;
+begin
+  DataToPrint := AnsiString(value);
+
+  WritePrinter(FPrinterHandle, PAnsiChar(DataToPrint), Length(DataToPrint), BytesWritten);
+end;
+
+procedure TFastDeviceSpool.EndPage;
+begin
+  EndPagePrinter(FPrinterHandle);
+end;
+
+procedure TFastDeviceSpool.EndDoc;
+begin
+  EndDocPrinter(FPrinterHandle);
 end;
 
 end.

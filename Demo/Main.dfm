@@ -58,8 +58,6 @@ object FrmMain: TFrmMain
     PageLength = 0
     FastPrinter = Epson_FX
     FastFont = []
-    FastPort = 'LPT1'
-    SaveConfToRegistry = False
     Preview = ppYes
     Left = 96
     Top = 64

@@ -11,54 +11,51 @@ const
 
 type
   TRSPrinter = class(TComponent)
+  private const
+    PREVIEW_FONT_NAME = 'courier new';
+    PREVIEW_FONT_SIZE = 18;
+
   private
     FOwner: TForm;
-    fOnPrinterError: TNotifyEvent;
-    FDatosEmpresa: String;      // INFORMACION QUE SE IMPRIME EN TODOS LOS REPORTES
+    FOnPrinterError: TNotifyEvent;
     FModelo: TPrinterModel;           // MODELO DE IMPRESORA
-    FFastPuerto: string;         // PUERTO DE LA IMPRESORA
-    FLineas: byte;              // CANTIDAD DE LINEAS POR PAGINA
-    FColumnas: byte;            // CANTIDAD DE COLUMNAS EN LA PAGINA
-    FFuente: TFastFont;         // TIPO DE LETRA
-    FModo: TPrinterMode;        // MODO DE IMPRESION (NORMAL/MEJORADO)
+    FLineas: Byte;              // CANTIDAD DE LINEAS POR PAGINA
+    FColumnas: Byte;            // CANTIDAD DE COLUMNAS EN LA PAGINA
+    FDefaultFont: TFastFont;         // TIPO DE LETRA
+    FMode: TPrinterMode;        // MODO DE IMPRESION (NORMAL/MEJORADO)
     LasPaginas: TList;             // Almacenamiento de las páginas
-    FCopias: integer;
-    FWinSupMargin: integer;     // MARGEN SUPERIOR PARA EL MODO WINDOWS
-    FWinBotMargin: integer;     // MARGEN INFERIOR PARA EL MODO WINDOWS
+    FCopias: Integer;
+    FWinSupMargin: Integer;     // MARGEN SUPERIOR PARA EL MODO WINDOWS
+    FWinBotMargin: Integer;     // MARGEN INFERIOR PARA EL MODO WINDOWS
     PaginaActual: Integer;
-    FPreview: TRSPrinterPreview;
+    FShowPreview: TRSPrinterPreview;
     FZoom: TInitialZoom;
     FTitulo: string;
-    PreviewForm: TForm;
     FWinPrinter: string;        // NOMBRE DE LA IMPRESORA EN WINDOWS
-    FWinPort: string;
     FTransliterate: Boolean;
-    FWinFont: string;
-    OldCloseQuery: procedure (Sender: TObject; var CanClose: Boolean) of object;
     FPageSize: TPageSize;
-    FPageLength: byte;
-    FReportName: String;
-    FSaveConfToRegistry: boolean;
-    FContinuousJump: byte;
-    Cancelado: boolean;
+    FPageLength: Byte;
+    FReportName: string;
+    FContinuousJump: Byte;
+    Cancelado: Boolean;
     FPrinterStatus: TPrinterStatus;
     FControlCodes: TControlCodes;
+    FOldCloseQuery: procedure (Sender: TObject; var CanClose: Boolean) of object;
 
-    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    function GetModelRealName(Model : TPrinterModel) : String;
-    procedure SetModel(Name: TPrinterModel);
-    procedure SetFastPuerto(Puerto: string);
-    function GetPaginas: integer;
+    procedure FormCloseQuery(sender: TObject; var canClose: Boolean);
+
+    function GetModelRealName(model: TPrinterModel): string;
+    procedure SetModel(name: TPrinterModel);
+
+    function GetPaginas: Integer;
     procedure Clear;
-    procedure BtnCancelarClick(Sender: TObject);
+    procedure BtnCancelarClick(sender: TObject);
     function IsCurrentlyPrinting: Boolean;
 
   protected
     procedure Loaded; override;
 
   public
-    GridFrm: TForm;
-    Fonts: TStringList;
     PageNo: Integer;
     PageWidth: Integer;         // ANCHO DE PAGINA EN PIXELS
     PageHeight: Integer;  // ALTO DE PAGINA EN PIXELS
@@ -70,70 +67,65 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure BeginDoc;  // PARA COMENZAR UNA NUEVA IMPRESION
-    procedure EndDoc; // ELIMINA LA INFORMACION DE LAS PAGINAS AL FINALIZAR
+    procedure BeginDoc;
+    procedure EndDoc;
 
-    procedure PreviewReal;                            // MUESTRA LA IMPRESION EN PANTALLA
-    procedure Print;                           // MANDA LA IMPRESION A LA IMPRESORA
-    procedure PrintAll;                           // MANDA LA IMPRESION A LA IMPRESORA
+    procedure PreviewReal;
+    procedure Print;
+    procedure PrintAll;
     procedure CancelAllPrinting;
     procedure PausePrinting;
     procedure RestorePrinting;
     procedure CancelPrinting;
 
-    procedure Write(Line, Col: byte; Text: string); // ESCRIBE UN TEXTO EN LA PAGINA
-    procedure WriteFont(Line, Col: byte; Text: string; Font: TFastFont); // ESCRIBE UN TEXTO EN LA PAGINA
-    procedure DrawMetafile(Col, Line: single; Picture: TMetafile); // Hace un dibujo
+    procedure Write(line, col: Byte; text: string);
+    procedure WriteFont(line, col: Byte; text: string; font: TFastFont);
+    procedure NewPage;
 
-    procedure Box(Line1,Col1,Line2,Col2 : byte; Kind : TLineType);                // ESCRIBE UN RECTANGULO
-    procedure LineH(Line,Col1,Col2 : byte; Kind : TLineType);           // ESCRIBE UNA LINEA HORIZONTAL
-    procedure LineV(Line1,Line2,Col : byte; Kind : TLineType);             // ESCRIBE UNA LINEA VERTICAL
+    procedure DrawMetafile(col, line: Single; picture: TMetafile);
 
-    procedure NewPage;                        // CREA UNA NUEVA PAGINA
+    procedure Box(line1, col1, line2, col2: Byte; kind: TLineType);
+    procedure LineH(line, col1, col2: Byte; kind: TLineType);
+    procedure LineV(line1, line2, col: Byte; kind: TLineType);
 
-    procedure SetModelName(Name : String);
-    function GetModelName : String;
+    procedure SetModelName(name: string);
+    function GetModelName: string;
+    procedure GetModels(models: TStrings);
 
-    procedure GetModels(Models : TStrings);
+    procedure BuildPage(number: Integer; page: TMetaFile; toPrint: Boolean; mode: TPrinterMode; showDialog: Boolean);
+    function PrintPage(number: Integer): Boolean;
+    function GetPrintingWidth: Integer;
+    function GetPrintingHeight: Integer;
 
-    procedure BuildPage(Number : integer; Page : TMetaFile;ToPrint:boolean;Mode : TPrinterMode;ShowDialog : boolean);
-    function PrintPage(Number:integer) : boolean;// MANDA UNA PAGINA A LA IMPRESORA
-    function GetPrintingWidth : integer;
-    function GetPrintingHeight : integer;
-
-    property Lines : byte read FLineas write FLineas default 66; // CANTIDAD DE LINEAS POR PAGINA
-    property WinPrinter : string read fWinPrinter write fWinPrinter;
-    property WinPort : string read fWinPort write fWinPort;
+    property Lines: Byte read FLineas write FLineas default 66;
+    property WinPrinter: string read FWinPrinter write FWinPrinter;
     property CurrentlyPrinting: Boolean read IsCurrentlyPrinting;
 
   published
-    property PageContinuousJump : byte read FContinuousJump write FContinuousJump default 5;
-    property PageSize : TPageSize read FPageSize write FPageSize;
-    property PageLength : byte read FPageLength write FPageLength;
-    property FastPrinter : TPrinterModel read FModelo Write SetModel; // MODELO DE LA IMPRESORA
-    property FastFont : TFastFont read FFuente write FFuente;
-    property FastPort : string read FFastPuerto Write SetFastPuerto; // PUERTO DE LA IMPRESORA
-    property Mode : TPrinterMode read FModo write FModo default pmFast; // MODO DE IMPRESION
-    property Columnas : byte read FColumnas default 80; // CANTIDAD DE COLUMNAS EN LA PAGINA
-    property Paginas : Integer read GetPaginas default 0;             // CANTIDAD DE PAGINAS
-    property CompanyData : string read FDatosEmpresa write FDatosEmpresa; // SE IMPRIME EN TODOS LOS REPORTES
-    property ReportName : string read FReportName  write FReportName;
-    property SaveConfToRegistry : boolean read FSaveConfToRegistry write FSaveConfToRegistry;
-    property Zoom : TInitialZoom read FZoom write FZoom default zWidth;
-    property Preview : TRSPrinterPreview read FPreview write FPreview;
-    property Title : string read FTitulo write FTitulo;
-    property Copies : integer read fCopias write fCopias default 1;
-    property OnPrinterError : TNotifyEvent read fOnPrinterError write fOnPrinterError;
-    property PrintingWidth : integer read GetPrintingWidth;
-    property PrintingHeight : integer read GetPrintingHeight;
-    property Transliterate : boolean read FTransliterate write FTransliterate default True;
-    property WinMarginTop : integer read FWinSupMargin write FWinSupMargin default 0;
-    property WinMarginBottom : integer read FWinBotMargin write FWinBotMargin default 0;
+    property PageContinuousJump: Byte read FContinuousJump write FContinuousJump default 5;
+    property PageSize: TPageSize read FPageSize write FPageSize;
+    property PageLength: Byte read FPageLength write FPageLength;
+    property FastPrinter: TPrinterModel read FModelo Write SetModel;
+    property FastFont: TFastFont read FDefaultFont write FDefaultFont;
+    property Mode: TPrinterMode read FMode write FMode default pmFast;
+    property Columnas: Byte read FColumnas default 80;
+    property Paginas: Integer read GetPaginas default 0;
+    property ReportName: string read FReportName write FReportName;
+    property Zoom: TInitialZoom read FZoom write FZoom default zWidth;
+    property Preview: TRSPrinterPreview read FShowPreview write FShowPreview;
+    property Title: string read FTitulo write FTitulo;
+    property Copies: Integer read fCopias write fCopias default 1;
+    property OnPrinterError: TNotifyEvent read FOnPrinterError write FOnPrinterError;
+    property PrintingWidth: Integer read GetPrintingWidth;
+    property PrintingHeight: Integer read GetPrintingHeight;
+    property Transliterate: Boolean read FTransliterate write FTransliterate default True;
+    property WinMarginTop: Integer read FWinSupMargin write FWinSupMargin default 0;
+    property WinMarginBottom: Integer read FWinBotMargin write FWinBotMargin default 0;
   end;
 
   TTbProcedure = procedure of object;
 
-  TTbGetTextEvent = procedure(var Text: string) of object;
+  TTbGetTextEvent = procedure(var text: string) of object;
 
 procedure Register;
 
@@ -144,7 +136,7 @@ uses
 
 procedure Register;
 begin
-  RegisterComponents('RS Componentes', [TRSPrinter]);
+  RegisterComponents('RS', [TRSPrinter]);
 end;
 
 constructor TRSPrinter.Create(AOwner: TComponent);
@@ -159,18 +151,17 @@ begin
   if (AOwner is TForm) and not (CsDesigning in ComponentState) then
   begin
     FOwner := TForm(AOwner);
-    OldCloseQuery := TForm(AOwner).OnCloseQuery;
+    FOldCloseQuery := TForm(AOwner).OnCloseQuery;
     TForm(AOwner).OnCloseQuery := FormCloseQuery;
   end;
 
   SetModel(EPSON_FX);
-  SetFastPuerto('LPT1');
   FColumnas := 80;
   PaginaActual := 0;
   PageNo:= 1;
   fCopias := 1;
   FZoom := zWidth;
-  FFuente := [];
+  FDefaultFont := [];
   FPageSize := pzLegal;
   FContinuousJump := 5;
   LasPaginas := TList.Create;
@@ -184,13 +175,11 @@ begin
     PageHeightP := PageHeight/GetDeviceCaps(Printer.Handle, LOGPIXELSY);
     Lines := Trunc(PageHeightP*6)-4;
     Printer.GetPrinter(ADevice, ADriver, APort, DeviceMode);
-    WinPort := APort;
     WinPrinter := ADevice;
   end;
 
   ReGenerate := nil;
   FTransliterate := True;
-  FWinFont := 'courier new';
 end;
 
 destructor TRSPrinter.Destroy;
@@ -198,7 +187,7 @@ begin
   Clear;
 
   if not (CsDesigning in ComponentState) then
-    FOwner.OnCloseQuery := OldCloseQuery;
+    FOwner.OnCloseQuery := FOldCloseQuery;
 
   inherited Destroy;
 end;
@@ -265,11 +254,11 @@ begin
   end;
 end;
 
-procedure TRSPrinter.SetModel(Name : TPrinterModel);
+procedure TRSPrinter.SetModel(name : TPrinterModel);
 var
   Nombre: TPrinterModel;
 begin
-  Nombre := Name;
+  Nombre := name;
   FModelo := Nombre;
 
   case Nombre of
@@ -469,13 +458,7 @@ begin
   end;
 end;
 
-procedure TRSPrinter.SetFastPuerto(Puerto : string);
-begin
-  if (Puerto <> fFastPuerto) then
-    FFastPuerto := Puerto;
-end;
-
-function TRSPrinter.GetPaginas : Integer;
+function TRSPrinter.GetPaginas: Integer;
 begin
   GetPaginas := LasPaginas.Count;
 end;
@@ -491,11 +474,11 @@ begin
   Clear;
 end;
 
-procedure TRSPrinter.WriteFont(Line,Col : byte; Text:string;Font : TFastFont); // ESCRIBE UN TEXTO EN LA PAGINA
+procedure TRSPrinter.WriteFont(line, col: Byte; text: string; font: TFastFont);
 var
   Txt: PWrite;
   Pag: PPage;
-  P: integer;
+  P: Integer;
 begin
   if LasPaginas.Count > 0 then
     begin
@@ -506,8 +489,8 @@ begin
       begin
         Txt := Pag.Writed.Items[0];
         while (P<Pag.Writed.Count) and
-              ((Txt^.Line < Line) or
-              ((Txt^.Line = Line)and(Txt^.Col<=Col))) do
+              ((Txt^.Line < line) or
+              ((Txt^.Line = line)and(Txt^.Col<=col))) do
         begin
           Inc(P);
           if P<Pag.Writed.Count then
@@ -517,52 +500,22 @@ begin
 
       New(Txt);
       Pag.Writed.Insert(P,Txt);
-      Txt^.Col := Col;
-      Txt^.Line := Line;
-      Txt^.Text := Text;
-      Txt^.FastFont := Font;
+      Txt^.Col := col;
+      Txt^.Line := line;
+      Txt^.Text := text;
+      Txt^.Font := font;
 
-      if Line > Pag.PrintedLines then
-        Pag.PrintedLines := Line;
+      if line > Pag.PrintedLines then
+        Pag.PrintedLines := line;
     end;
 end;
 
-procedure TRSPrinter.Write(Line,Col : byte; Text:string); // ESCRIBE UN TEXTO EN LA PAGINA
-var
-  Txt: PWrite;
-  Pag: PPage;
-  P: integer;
+procedure TRSPrinter.Write(line, col: Byte; text: string);
 begin
-  if LasPaginas.Count > 0 then
-  begin
-    Pag := LasPaginas.Items[PaginaActual];
-    P := 0;
-
-    if Pag.Writed.Count>0 then
-    begin
-      Txt := Pag.Writed.Items[0];
-      while (P<Pag.Writed.Count) and
-            ((Txt^.Line < Line) or
-            ((Txt^.Line = Line)and(Txt^.Col<=Col))) do
-      begin
-        Inc(P);
-        if P<Pag.Writed.Count then
-          Txt := Pag.Writed.Items[P];
-      end;
-    end;
-
-    New(Txt);
-    Pag.Writed.Insert(P,Txt);
-    Txt^.Col := Col;
-    Txt^.Line := Line;
-    Txt^.Text := Text;
-    Txt^.FastFont := FFuente;
-    if Line > Pag.PrintedLines then
-      Pag.PrintedLines := Line;
-  end;
+  WriteFont(line, col, text, FDefaultFont);
 end;
 
-procedure TRSPrinter.DrawMetafile(Col,Line : single; Picture : TMetafile); // Hace un dibujo
+procedure TRSPrinter.DrawMetafile(col, line: Single; picture: TMetafile);
 var
   Pag: PPage;
   Dib: TPicture;
@@ -573,15 +526,15 @@ begin
     Pag := LasPaginas.Items[PaginaActual];
     Dib := TPicture.Create;
     New(Graf);
-    Graf^.Col := Col;
-    Graf^.Line := Line;
+    Graf^.Col := col;
+    Graf^.Line := line;
     Graf^.Picture := Dib;
-    Dib.Metafile.Assign(Picture);
+    Dib.Metafile.Assign(picture);
     Pag^.Graphics.Add(Graf);
   end;
 end;
 
-procedure TRSPrinter.Box(Line1,Col1,Line2,Col2 : byte; Kind : TLineType);// ESCRIBE UN RECTANGULO
+procedure TRSPrinter.Box(line1, col1, line2, col2: Byte; kind: TLineType);
 var
   Pag: PPage;
   VLine: PVertLine;
@@ -590,36 +543,41 @@ begin
   if LasPaginas.Count > 0 then
   begin
     Pag := LasPaginas.Items[PaginaActual];
+
     New(VLine);
-    VLine^.Col := Col1;
-    VLine^.Line1 := Line1;
-    VLine^.Line2 := Line2;
-    VLine^.Kind := Kind;
+    VLine^.Col := col1;
+    VLine^.Line1 := line1;
+    VLine^.Line2 := line2;
+    VLine^.Kind := kind;
     Pag^.VerticalLines.Add(VLine);
+
     New(VLine);
-    VLine^.Col := Col2;
-    VLine^.Line1 := Line1;
-    VLine^.Line2 := Line2;
-    VLine^.Kind := Kind;
+    VLine^.Col := col2;
+    VLine^.Line1 := line1;
+    VLine^.Line2 := line2;
+    VLine^.Kind := kind;
     Pag^.VerticalLines.Add(VLine);
+
     New(HLine);
-    HLine^.Col1 := Col1;
-    HLine^.Col2 := Col2;
-    HLine^.Line := Line1;
-    HLine^.Kind := Kind;
+    HLine^.Col1 := col1;
+    HLine^.Col2 := col2;
+    HLine^.Line := line1;
+    HLine^.Kind := kind;
     Pag^.HorizLines.Add(HLine);
+
     New(HLine);
-    HLine^.Col1 := Col1;
-    HLine^.Col2 := Col2;
-    HLine^.Line := Line2;
-    HLine^.Kind := Kind;
+    HLine^.Col1 := col1;
+    HLine^.Col2 := col2;
+    HLine^.Line := line2;
+    HLine^.Kind := kind;
     Pag^.HorizLines.Add(HLine);
-    if Line2 > Pag^.PrintedLines then
-      Pag^.PrintedLines := Line2;
+
+    if line2 > Pag^.PrintedLines then
+      Pag^.PrintedLines := line2;
   end;
 end;
 
-procedure TRSPrinter.LineH(Line,Col1,Col2 : byte; Kind : TLineType); // ESCRIBE UNA LINEA HORIZONTAL
+procedure TRSPrinter.LineH(line, col1, col2: Byte; Kind: TLineType);
 var
   HLine: PHorizLine;
   Pag: PPage;
@@ -627,19 +585,20 @@ begin
   if LasPaginas.Count > 0 then
   begin
     Pag := LasPaginas.Items[PaginaActual];
+
     New(HLine);
     Pag.HorizLines.Add(HLine);
-    HLine^.Col1 := Col1;
-    HLine^.Col2 := Col2;
-    HLine^.Line := Line;
-    HLine^.Kind := Kind;
+    HLine^.Col1 := col1;
+    HLine^.Col2 := col2;
+    HLine^.Line := line;
+    HLine^.Kind := kind;
 
-    if Line > Pag^.PrintedLines then
-      Pag^.PrintedLines := Line;
+    if line > Pag^.PrintedLines then
+      Pag^.PrintedLines := line;
   end;
 end;
 
-procedure TRSPrinter.LineV(Line1,Line2,Col : byte; Kind : TLineType);             // ESCRIBE UNA LINEA VERTICAL
+procedure TRSPrinter.LineV(line1, line2, col: Byte; kind: TLineType);
 var
   VLine: PVertLine;
   Pag: PPage;
@@ -647,57 +606,65 @@ begin
   if LasPaginas.Count > 0 then
   begin
     Pag := LasPaginas.Items[PaginaActual];
+
     New(VLine);
     Pag.VerticalLines.Add(VLine);
-    VLine^.Col := Col;
-    VLine^.Line1 := Line1;
-    VLine^.Line2 := Line2;
-    VLine^.Kind := Kind;
+    VLine^.Col := col;
+    VLine^.Line1 := line1;
+    VLine^.Line2 := line2;
+    VLine^.Kind := kind;
 
-    if Line2 > Pag^.PrintedLines then
-      Pag^.PrintedLines := Line2;
+    if line2 > Pag^.PrintedLines then
+      Pag^.PrintedLines := line2;
   end;
 end;
 
-procedure TRSPrinter.PreviewReal;                            // MUESTRA LA IMPRESION EN PANTALLA
+procedure TRSPrinter.PreviewReal;
+var
+  PreviewForm: TForm;
 begin
   PreviewForm := TFrmPreview.Create(self);
-  TFrmPreview(PreviewForm).RSPrinter := self;
-  PreviewForm.ShowModal;
-  PreviewForm.Free;
+  try
+    TFrmPreview(PreviewForm).RSPrinter := self;
+    PreviewForm.ShowModal;
+  finally
+    PreviewForm.Release;
+  end;
 end;
-
 
 procedure TRSPrinter.Print;
 begin
-  if FPreview = ppYes then
-    PreviewReal
-  else if FPreview = ppNo then
+  if FShowPreview = ppNo then
     PrintAll
   else
     PreviewReal;
 end;
 
-procedure TRSPrinter.BuildPage(Number : integer; Page : TMetaFile;ToPrint:boolean;Mode : TPrinterMode; ShowDialog:boolean);
+procedure TRSPrinter.BuildPage(number: Integer; page: TMetaFile; toPrint: Boolean; mode: TPrinterMode; showDialog: Boolean);
 var
-  Pagina : PPage;
-  Grafico : PGraphic;
-  Escritura : PWrite;
-  EA : integer; // LINEA ACTUAL
-  DA : integer;
-  LineaHorizontal : PHorizLine;
-  LineaVertical : PVertLine;
-  Derecha, Abajo : integer;
-  Texto : TMetafile;
-  Ancho, Alto : Integer;
-  MargenIzquierdo, MargenSuperior : integer;
-  AltoDeLinea, AnchoDeColumna : double;
-  CantColumnas,i : integer;
-  WaitForm : TForm;
-  WaitPanel : TPanel;
-  BtnCancelar : TButton;
+  Pagina: PPage;
+  Grafico: PGraphic;
+  Escritura: PWrite;
+  EA: Integer; // LINEA ACTUAL
+  DA: Integer;
+  LineaHorizontal: PHorizLine;
+  LineaVertical: PVertLine;
+  Derecha: Integer;
+  Abajo: Integer;
+  Texto: TMetafile;
+  Ancho: Integer;
+  Alto: Integer;
+  MargenIzquierdo: Integer;
+  MargenSuperior: Integer;
+  AltoDeLinea: Double;
+  AnchoDeColumna: Double;
+  CantColumnas: Integer;
+  I: Integer;
+  WaitForm: TForm;
+  WaitPanel: TPanel;
+  BtnCancelar: TButton;
 begin
-  if ToPrint then
+  if toPrint then
     begin
       if DobleWide in FastFont then
         CantColumnas := 42
@@ -705,22 +672,23 @@ begin
         CantColumnas := 136
       else
         CantColumnas := 81;
-      With TMetaFileCanvas.Create(Page,0) do
+
+      With TMetaFileCanvas.Create(page,0) do
         try
           Brush.Color := clWhite;
           AnchoDeColumna := 640/CantColumnas;//(Hoja.Width-(2*MargenIzquierdo))/CantColumnas;
           AltoDeLinea := 12;//Round(AnchoDeColumna/Ancho*Alto);
-          Page.Width := Round(AnchoDeColumna*CantColumnas);//Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
-          Page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2));
-          Font.Name := FWinFont;
-          Font.Size := 18;
+          page.Width := Round(AnchoDeColumna*CantColumnas);//Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
+          page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2));
+          Font.Name := PREVIEW_FONT_NAME;
+          Font.Size := PREVIEW_FONT_SIZE;
           Font.Pitch := fpFixed;
           Ancho := TextWidth('X');
           Alto := TextHeight('X');
-          FillRect(Rect(0,0,(Page.Width)-1,(Page.Height-1))); //80*(Ancho),66*Alto));
-          Pagina := LasPaginas.Items[Number-1];
+          FillRect(Rect(0,0,(page.Width)-1,(page.Height-1))); //80*(Ancho),66*Alto));
+          Pagina := LasPaginas.Items[number-1];
 
-          if Mode = pmWindows then
+          if mode = pmWindows then
             begin
               For DA := 0 to Pagina.Graphics.Count-1 do
                 begin
@@ -728,7 +696,8 @@ begin
                   Draw(Round(AnchoDeColumna*(Grafico^.Col)),Round(FWinSupMargin+AltoDeLinea*(Grafico^.Line)),Grafico^.Picture.Graphic);
                 end;
             end;
-          For EA := 0 to Pagina.Writed.Count-1 do
+
+          for EA := 0 to Pagina.Writed.Count-1 do
             begin
               Escritura := Pagina.Writed.Items[EA];
               if Escritura^.Line <= Lines then
@@ -738,18 +707,18 @@ begin
                   Texto.Height := Alto;
                   With TMetaFileCanvas.Create(Texto,0) do
                     try
-                      Font.Name := FWinFont;
-                      Font.Size := 18;
+                      Font.Name := PREVIEW_FONT_NAME;
+                      Font.Size := PREVIEW_FONT_SIZE;
                       Font.Pitch := fpFixed;
-                      if Bold in Escritura^.FastFont then
+                      if Bold in Escritura^.Font then
                         Font.Style := Font.Style + [fsBold]
                       else
                         Font.Style := Font.Style - [fsBold];
-                      if Italic in Escritura^.FastFont then
+                      if Italic in Escritura^.Font then
                         Font.Style := Font.Style + [fsItalic]
                       else
                         Font.Style := Font.Style - [fsItalic];
-                      if Underline in Escritura^.FastFont then
+                      if Underline in Escritura^.Font then
                         Font.Style := Font.Style + [fsUnderline]
                       else
                         Font.Style := Font.Style - [fsUnderline];
@@ -757,19 +726,20 @@ begin
                     finally
                       Free
                     end;
-                  if (DobleWide in Escritura^.FastFont) and not (DobleWide in FastFont) then
-                    StretchDraw(rect(Round(AnchoDeColumna*(Escritura^.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line-1))-1,Round(AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*Page.Width/42),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line))+1),Texto)
-                  else if (Compress in Escritura^.FastFont) and not (Compress in FastFont) then
-                    StretchDraw(rect(Round(AnchoDeColumna*(Escritura^.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line-1))-1,Round(AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*Page.Width/140),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line))+1),Texto)
+
+                  if (DobleWide in Escritura^.Font) and not (DobleWide in FastFont) then
+                    StretchDraw(rect(Round(AnchoDeColumna*(Escritura^.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line-1))-1,Round(AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*page.Width/42),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line))+1),Texto)
+                  else if (Compress in Escritura^.Font) and not (Compress in FastFont) then
+                    StretchDraw(rect(Round(AnchoDeColumna*(Escritura^.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line-1))-1,Round(AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*page.Width/140),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line))+1),Texto)
                   else
                     StretchDraw(rect(Round(AnchoDeColumna*(Escritura^.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line-1))-1,Round(AnchoDeColumna*(Escritura^.Col+Length(Escritura^.Text))),Round(FWinSupMargin+AltoDeLinea*(Escritura^.Line))+1),Texto);
                   Texto.Free;
                 end;
               Application.ProcessMessages;
             end;
-          for i := 0 to Pagina.VerticalLines.Count-1 do
+          for I := 0 to Pagina.VerticalLines.Count-1 do
             begin
-              LineaVertical := Pagina.VerticalLines[i];
+              LineaVertical := Pagina.VerticalLines[I];
               if LineaVertical.Col <= CantColumnas then
                 begin
                   If LineaVertical.Kind = ltSingle then
@@ -805,9 +775,9 @@ begin
                 end;
               Application.ProcessMessages;
             end;
-          for i := 0 to Pagina.HorizLines.Count-1 do
+          for I := 0 to Pagina.HorizLines.Count-1 do
             begin
-              LineaHorizontal := Pagina.HorizLines[i];
+              LineaHorizontal := Pagina.HorizLines[I];
               if LineaHorizontal.Line <= Lines then
                 begin
                   If LineaHorizontal.Kind = ltSingle then
@@ -849,7 +819,7 @@ begin
     end
   else // ToPreview
     begin
-      if ShowDialog then
+      if showDialog then
         begin
           WaitForm := TForm.CreateNew(self);
           WaitForm.Caption := 'Gerando o preview';
@@ -880,7 +850,7 @@ begin
         CantColumnas := 136
       else
         CantColumnas := 81;
-      With TMetaFileCanvas.Create(Page,0) do
+      With TMetaFileCanvas.Create(page,0) do
         try
           Brush.Color := clWhite;
 
@@ -891,20 +861,20 @@ begin
           AnchoDeColumna := 640/CantColumnas;//(Hoja.Width-(2*MargenIzquierdo))/CantColumnas;
           AltoDeLinea := 12;//Round(AnchoDeColumna/Ancho*Alto);
 
-          Page.Width := Round(AnchoDeColumna*CantColumnas)+2*MargenIzquierdo;//Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
-          Page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2))+2*MargenSuperior;
-          Font.Name := FWinFont;
-          Font.Size := 18;
+          page.Width := Round(AnchoDeColumna*CantColumnas)+2*MargenIzquierdo;//Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
+          page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2))+2*MargenSuperior;
+          Font.Name := PREVIEW_FONT_NAME;
+          Font.Size := PREVIEW_FONT_SIZE;
           Font.Pitch := fpFixed;
           Ancho := TextWidth('X');
           Alto := TextHeight('X');
-          FillRect(Rect(0,0,(Page.Width)-1,(Page.Height)-1)); //80*(Ancho),66*Alto));
-          Rectangle(0,0,Page.Width,Page.Height);
+          FillRect(Rect(0,0,(page.Width)-1,(page.Height)-1)); //80*(Ancho),66*Alto));
+          Rectangle(0,0,page.Width,page.Height);
           MargenSuperior := MargenSuperior+FWinSupMargin;
           Pen.Style := psSolid;
           Pen.Color := clBlack;
-          Pagina := LasPaginas.Items[Number-1];
-          if Mode = pmWindows then
+          Pagina := LasPaginas.Items[number-1];
+          if mode = pmWindows then
             begin
               For DA := 0 to Pagina.Graphics.Count-1 do
                 if not Cancelado then
@@ -924,18 +894,18 @@ begin
                     Texto.Height := Alto;
                     With TMetaFileCanvas.Create(Texto,0) do
                       try
-                        Font.Name := FWinFont;
-                        Font.Size := 18;
+                        Font.Name := PREVIEW_FONT_NAME;
+                        Font.Size := PREVIEW_FONT_SIZE;
                         Font.Pitch := fpFixed;
-                        if Bold in Escritura^.FastFont then
+                        if Bold in Escritura^.Font then
                           Font.Style := Font.Style + [fsBold]
                         else
                           Font.Style := Font.Style - [fsBold];
-                        if Italic in Escritura^.FastFont then
+                        if Italic in Escritura^.Font then
                           Font.Style := Font.Style + [fsItalic]
                         else
                           Font.Style := Font.Style - [fsItalic];
-                        if Underline in Escritura^.FastFont then
+                        if Underline in Escritura^.Font then
                           Font.Style := Font.Style + [fsUnderline]
                         else
                           Font.Style := Font.Style - [fsUnderline];
@@ -943,20 +913,20 @@ begin
                       finally
                         Free
                       end;
-                    if (DobleWide in Escritura^.FastFont) and not (DobleWide in FastFont) then
-                      StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*Page.Width/42),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line))+1),Texto)
-                    else if (Compress in Escritura^.FastFont) and not (Compress in FastFont) then
-                      StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*Page.Width/140),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line))+1),Texto)
+                    if (DobleWide in Escritura^.Font) and not (DobleWide in FastFont) then
+                      StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*page.Width/42),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line))+1),Texto)
+                    else if (Compress in Escritura^.Font) and not (Compress in FastFont) then
+                      StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)+Length(Escritura^.Text)*page.Width/140),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line))+1),Texto)
                     else
                       StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura^.Col+Length(Escritura^.Text))),Round(MargenSuperior+AltoDeLinea*(Escritura^.Line))+1),Texto);
                     Texto.Free;
                   end;
                 Application.ProcessMessages;
               end;
-          for i := 0 to Pagina.VerticalLines.Count-1 do
+          for I := 0 to Pagina.VerticalLines.Count-1 do
             if not Cancelado then
               begin
-                LineaVertical := Pagina.VerticalLines[i];
+                LineaVertical := Pagina.VerticalLines[I];
                 if LineaVertical.Col <= CantColumnas then
                   begin
 
@@ -996,10 +966,10 @@ begin
                   end;
                 Application.ProcessMessages;
               end;
-          for i := 0 to Pagina.HorizLines.Count-1 do
+          for I := 0 to Pagina.HorizLines.Count-1 do
             if not Cancelado then
               begin
-                LineaHorizontal := Pagina.HorizLines[i];
+                LineaHorizontal := Pagina.HorizLines[I];
                 if LineaHorizontal.Line <= Lines then
                   begin
                     If LineaHorizontal.Kind = ltSingle then
@@ -1038,14 +1008,14 @@ begin
          finally
           Free;
         end;
-      if ShowDialog then
+      if showDialog then
         WaitForm.Free;
     end;
 end;
 
-function TRSPrinter.GetPrintingWidth : integer;
+function TRSPrinter.GetPrintingWidth: Integer;
 begin
-  result := Printer.PageWidth;
+  Result := Printer.PageWidth;
 end;
 
 function TRSPrinter.IsCurrentlyPrinting: Boolean;
@@ -1053,40 +1023,40 @@ begin
   Result := FPrinterStatus.CurrentlyPrinting;
 end;
 
-function TRSPrinter.GetPrintingHeight : integer;
+function TRSPrinter.GetPrintingHeight: Integer;
 begin
-  result := Printer.PageHeight;
+  Result := Printer.PageHeight;
 end;
 
-function TRSPrinter.PrintPage(Number:integer) : boolean; // MANDA UNA PAGINA A LA IMPRESORA
+function TRSPrinter.PrintPage(number: Integer): Boolean;
 var
-  Pag : PPage;
-  Esc : pWrite;
-  Imagen : TMetaFile;
-  Resultado : Boolean;
-  LP : TList;
-  j : integer;
-  LV : pVertLine;
-  LH : pHorizLine;
-  Job : pPrintJob;
+  Pag: PPage;
+  Esc: pWrite;
+  Img: TMetaFile;
+  Resultado: Boolean;
+  LP: TList;
+  j: integer;
+  LV: pVertLine;
+  LH: pHorizLine;
+  Job: pPrintJob;
   FastMode: TFastMode;
 begin
-  if FModo = pmWindows then
+  if FMode = pmWindows then
   begin
    try
-     Printer.Title := Title + ' (Página Nº'+' '+IntToStr(Number)+')';
+     Printer.Title := Title + ' (Página Nº'+' '+IntToStr(number)+')';
      Printer.Copies := fCopias;
      Printer.BeginDoc;
-     Imagen := TMetaFile.Create;
-     Imagen.Width := 640; // PrintingWidth{PageWidth} div 4; // 640;
-     Imagen.Height := 12*Lines; //PrintingHeight{PageHeight} div 4; // 1056;
+     Img := TMetaFile.Create;
+     Img.Width := 640; // PrintingWidth{PageWidth} div 4; // 640;
+     Img.Height := 12*Lines; //PrintingHeight{PageHeight} div 4; // 1056;
      try
-       BuildPage(Number,Imagen,True,pmWindows,False);
-       Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
+       BuildPage(number,Img,True,pmWindows,False);
+       Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Img);
        Printer.EndDoc;
      except
      end;
-     Imagen.Free;
+     Img.Free;
      Resultado := True;
    except
      Resultado := False;
@@ -1097,43 +1067,42 @@ begin
     LP := TList.Create;
     New(Pag);
     LP.Add(Pag);
-    Pag^.PrintedLines := PPage(LasPaginas[Number-1])^.PrintedLines + 1;
+    Pag^.PrintedLines := PPage(LasPaginas[number-1])^.PrintedLines + 1;
     Pag^.Writed := TList.Create;
     Pag^.VerticalLines := TList.Create;
     Pag^.HorizLines := TList.Create;
 
-    for j := 0 to PPage(LasPaginas[Number-1])^.Writed.Count-1 do
+    for j := 0 to PPage(LasPaginas[number-1])^.Writed.Count-1 do
     begin
       new(Esc);
-      Esc^ := pWrite(PPage(LasPaginas[Number-1])^.Writed[j])^;
+      Esc^ := pWrite(PPage(LasPaginas[number-1])^.Writed[j])^;
       Pag.Writed.Add(Esc);
     end;
 
-    for j := 0 to PPage(LasPaginas[Number-1])^.VerticalLines.Count-1 do
+    for j := 0 to PPage(LasPaginas[number-1])^.VerticalLines.Count-1 do
     begin
       new(LV);
-      LV^ := pVertLine(PPage(LasPaginas[Number-1])^.VerticalLines[j])^;
+      LV^ := pVertLine(PPage(LasPaginas[number-1])^.VerticalLines[j])^;
       Pag.VerticalLines.Add(LV);
     end;
 
-    for j := 0 to PPage(LasPaginas[Number-1])^.HorizLines.Count-1 do
+    for j := 0 to PPage(LasPaginas[number-1])^.HorizLines.Count-1 do
     begin
       new(LH);
-      LH^ := pHorizLine(PPage(LasPaginas[Number-1])^.HorizLines[j])^;
+      LH^ := pHorizLine(PPage(LasPaginas[number-1])^.HorizLines[j])^;
       Pag.HorizLines.Add(LH);
     end;
 
     New(Job);
-    Job.Name := Title + 'Pág. '+IntToStr(Number-1);
+    Job.Name := Title + 'Pág. '+IntToStr(number-1);
     Job.PageSize := PageSize;
     Job.PageContinuousJump := PageContinuousJump;
     Job.PageLength := PageLength;
     Job.LasPaginas := LP;
-    Job.FCopias := Copies;
-    Job.FFuente := FastFont;
-    Job.FPort := FastPort;
-    Job.FLineas := Lines;
-    Job.FTransliterate := Transliterate;
+    Job.Copias := Copies;
+    Job.DefaultFont := FastFont;
+    Job.Lineas := Lines;
+    Job.Transliterate := Transliterate;
     Job.ControlCodes := FControlCodes;
 
     FastMode := TFastMode.Create(FPrinterStatus);
@@ -1149,19 +1118,20 @@ begin
   PrintPage := Resultado;
 end;
 
-procedure TRSPrinter.PrintAll; // MANDA LA IMPRESION A LA IMPRESORA
+procedure TRSPrinter.PrintAll;
 var
-  Pag : PPage;
-  Esc : PWrite;
-  Imagen : TMetaFile;
-  i,j : integer;
-  LH : PHorizLine;
-  LV : PVertLine;
-  LP : TList;
-  Job : PPrintJob;
+  Pag: PPage;
+  Esc: PWrite;
+  Imagen: TMetaFile;
+  I: Integer;
+  J: Integer;
+  LH: PHorizLine;
+  LV: PVertLine;
+  LP: TList;
+  Job: PPrintJob;
   FastMode: TFastMode;
-begin // IMPRIMIR
-  if FModo = pmWindows then
+begin
+  if FMode = pmWindows then
   begin
     Printer.Title := Title;
     Printer.Copies := FCopias;
@@ -1172,10 +1142,10 @@ begin // IMPRIMIR
     BuildPage(1,Imagen,True,pmWindows,False);
     Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
     if LasPaginas.Count > 1 then
-      for i := 2 to LasPaginas.Count do
+      for I := 2 to LasPaginas.Count do
       begin
         Printer.NewPage;
-        BuildPage(i,Imagen,True,pmWindows,False);
+        BuildPage(I,Imagen,True,pmWindows,False);
         Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Imagen);
       end;
     Printer.EndDoc;
@@ -1185,33 +1155,33 @@ begin // IMPRIMIR
   begin
     LP := TList.Create;
 
-    for i := 0 to LasPaginas.Count-1 do
+    for I := 0 to LasPaginas.Count-1 do
     begin
       New(Pag);
       LP.Add(Pag);
-      Pag^.PrintedLines := PPage(LasPaginas[i])^.PrintedLines + 1;
+      Pag^.PrintedLines := PPage(LasPaginas[I])^.PrintedLines + 1;
       Pag^.Writed := TList.Create;
       Pag^.VerticalLines := TList.Create;
       Pag^.HorizLines := TList.Create;
 
-      for j := 0 to PPage(LasPaginas[i])^.Writed.Count-1 do
+      for J := 0 to PPage(LasPaginas[I])^.Writed.Count-1 do
       begin
         new(Esc);
-        Esc^ := pWrite(PPage(LasPaginas[i])^.Writed[j])^;
+        Esc^ := pWrite(PPage(LasPaginas[I])^.Writed[J])^;
         Pag.Writed.Add(Esc);
       end;
 
-      for j := 0 to PPage(LasPaginas[i])^.VerticalLines.Count-1 do
+      for J := 0 to PPage(LasPaginas[I])^.VerticalLines.Count-1 do
       begin
         new(LV);
-        LV^ := pVertLine(PPage(LasPaginas[i])^.VerticalLines[j])^;
+        LV^ := pVertLine(PPage(LasPaginas[I])^.VerticalLines[J])^;
         Pag.VerticalLines.Add(LV);
       end;
 
-      for j := 0 to PPage(LasPaginas[i])^.HorizLines.Count-1 do
+      for J := 0 to PPage(LasPaginas[I])^.HorizLines.Count-1 do
       begin
         new(LH);
-        LH^ := pHorizLine(PPage(LasPaginas[i])^.HorizLines[j])^;
+        LH^ := pHorizLine(PPage(LasPaginas[I])^.HorizLines[J])^;
         Pag.HorizLines.Add(LH);
       end;
     end;
@@ -1222,11 +1192,10 @@ begin // IMPRIMIR
     Job.PageContinuousJump := PageContinuousJump;
     Job.PageLength := PageLength;
     Job.LasPaginas := LP;
-    Job.FCopias := Copies;
-    Job.FFuente := FastFont;
-    Job.FPort := FastPort;
-    Job.FLineas := Lines;
-    Job.FTransliterate := Transliterate;
+    Job.Copias := Copies;
+    Job.DefaultFont := FastFont;
+    Job.Lineas := Lines;
+    Job.Transliterate := Transliterate;
     Job.ControlCodes := FControlCodes;
 
     FastMode := TFastMode.Create(FPrinterStatus);
@@ -1236,11 +1205,11 @@ begin // IMPRIMIR
       FastMode.Free;
     end;
   end;
-end; // IMPRIMIR
+end;
 
-procedure TRSPrinter.NewPage;                        // CREA UNA NUEVA PAGINA
+procedure TRSPrinter.NewPage;
 var
-  Pag : PPage;
+  Pag: PPage;
 begin
   New(Pag);
   LasPaginas.Add(Pag);
@@ -1253,47 +1222,47 @@ begin
   PageNo := PaginaActual+1;
 end;
 
-procedure TRSPrinter.SetModelName(Name : String);
+procedure TRSPrinter.SetModelName(name: string);
 begin
-  if FModo = pmWindows then
+  if FMode = pmWindows then
   begin
-    if Printer.Printers.IndexOf(Name) <> -1 then
-      Printer.PrinterIndex := Printer.Printers.IndexOf(Name);
+    if Printer.Printers.IndexOf(name) <> -1 then
+      Printer.PrinterIndex := Printer.Printers.IndexOf(name);
   end
   else
   begin
-    if Name = 'Cannon F-60' then
+    if name = 'Cannon F-60' then
       SetModel(Cannon_F60)
-    else if Name = 'Cannon laser' then
+    else if name = 'Cannon laser' then
       SetModel(Cannon_Laser)
-    else if Name = 'Epson FX/LX/LQ' then
+    else if name = 'Epson FX/LX/LQ' then
       SetModel(Epson_FX)
-    else if Name = 'Epson Stylus' then
+    else if name = 'Epson Stylus' then
       SetModel(Epson_Stylus)
-    else if Name = 'HP Deskjet' then
+    else if name = 'HP Deskjet' then
       SetModel(HP_Deskjet)
-    else if Name = 'HP Laserjet' then
+    else if name = 'HP Laserjet' then
       SetModel(HP_Laserjet)
-    else if Name = 'HP Thinkjet' then
+    else if name = 'HP Thinkjet' then
       SetModel(HP_Thinkjet)
-    else if Name = 'IBM Color Jet' then
+    else if name = 'IBM Color Jet' then
       SetModel(IBM_Color_Jet)
-    else if Name = 'IBM PC Graphics' then
+    else if name = 'IBM PC Graphics' then
       SetModel(IBM_PC_Graphics)
-    else if Name = 'IBM Proprinter' then
+    else if name = 'IBM Proprinter' then
       SetModel(IBM_Proprinter)
-    else if Name = 'NEC 3500' then
+    else if name = 'NEC 3500' then
       SetModel(NEC_3500)
-    else if Name = 'NEC Pinwriter' then
+    else if name = 'NEC Pinwriter' then
       SetModel(NEC_Pinwriter)
-    else if Name = 'Mp20Mi' then
+    else if name = 'Mp20Mi' then
       SetModel(Mp20Mi);
   end;
 end;
 
-function TRSPrinter.GetModelRealName(Model : TPrinterModel) : String;
+function TRSPrinter.GetModelRealName(model: TPrinterModel): string;
 begin
-  case Model of
+  case model of
     Cannon_F60 : Result := 'Cannon F-60';
     Cannon_Laser : Result := 'Cannon Laser';
     Epson_FX : Result := 'Epson FX/LX/LQ';
@@ -1310,28 +1279,27 @@ begin
   end;
 end;
 
-function TRSPrinter.GetModelName : String;
+function TRSPrinter.GetModelName: string;
 begin
   Result := GetModelRealName(FModelo);
 end;
 
-procedure TRSPrinter.GetModels(Models : TStrings);
+procedure TRSPrinter.GetModels(models : TStrings);
 var
-  i : integer;
+  I: Integer;
 begin
-  Models.Clear;
-  for i := Ord(Low(TPrinterModel)) to Ord(High(TPrinterModel)) do
-    Models.Add(GetModelRealName(TPrinterModel(i)));
+  models.Clear;
+  for I := Ord(Low(TPrinterModel)) to Ord(High(TPrinterModel)) do
+    models.Add(GetModelRealName(TPrinterModel(I)));
 end;
 
-procedure TRSPrinter.FormCloseQuery(Sender: TObject;
-  var CanClose: Boolean);
+procedure TRSPrinter.FormCloseQuery(sender: TObject; var canClose: Boolean);
 begin
-  if CanClose and FPrinterStatus.CurrentlyPrinting and (MessageDlg('Há páginas a serem impressas. Cancelar? ',mtConfirmation,[mbYes,mbNo],0)=mrNo) then
-    CanClose := False;
+  if canClose and FPrinterStatus.CurrentlyPrinting and (MessageDlg('Há páginas a serem impressas. Cancelar? ',mtConfirmation,[mbYes,mbNo],0)=mrNo) then
+    canClose := False;
 
-  if Assigned(OldCloseQuery) then
-    OldCloseQuery(Sender,CanClose);
+  if Assigned(FOldCloseQuery) then
+    FOldCloseQuery(sender,canClose);
 end;
 
 procedure TRSPrinter.CancelAllPrinting;
@@ -1354,7 +1322,7 @@ begin
   FPrinterStatus.PrintingPaused := False;
 end;
 
-procedure TRSPrinter.BtnCancelarClick(Sender: TObject);
+procedure TRSPrinter.BtnCancelarClick(sender: TObject);
 begin
   Cancelado := True;
 end;

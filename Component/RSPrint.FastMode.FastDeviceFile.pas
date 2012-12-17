@@ -13,8 +13,10 @@ type
 
   public
     procedure BeginDoc;
+    procedure BeginPage;
     procedure Write(value: string);
     procedure WriteLn(value: string);
+    procedure EndPage;
     procedure EndDoc;
   end;
 
@@ -33,9 +35,19 @@ begin
   ReWrite(FFile);
 end;
 
+procedure TFastDeviceFile.BeginPage;
+begin
+  {empty by purpose}
+end;
+
 procedure TFastDeviceFile.EndDoc;
 begin
   CloseFile(FFile);
+end;
+
+procedure TFastDeviceFile.EndPage;
+begin
+  {empty by purpose}
 end;
 
 procedure TFastDeviceFile.Write(value: string);
