@@ -3,7 +3,7 @@ unit RSPrint.Types.Document;
 interface
 
 uses
-  RSPrint.CommonTypes, Generics.Collections, RSPrint.Types.Page;
+  RSPrint.Types.CommonTypes, Generics.Collections, RSPrint.Types.Page;
 
 type
   TDocument = class

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, CommDlg, Classes, Graphics, Controls, ExtCtrls, StdCtrls, Consts, ShellAPI, Menus,
-  Printers, ComCtrls, Forms, Dialogs, RSPrint.CommonTypes, RSPrint.Types.Document, Generics.Collections;
+  Printers, ComCtrls, Forms, Dialogs, RSPrint.Types.CommonTypes, RSPrint.Types.Document, Generics.Collections;
 
 type
   TRSPrinter = class(TComponent)
@@ -25,7 +25,7 @@ type
     FShowPreview: TRSPrinterPreview;
     FZoom: TInitialZoom;
     FWinPrinter: string;        // NOMBRE DE LA IMPRESORA EN WINDOWS
-    Cancelado: Boolean;
+    FCancelado: Boolean;
 
     function GetModelRealName(model: TPrinterModel): string;
     procedure SetModel(name: TPrinterModel);
@@ -772,7 +772,7 @@ begin
           WaitForm.Height := 100;
           WaitForm.Width := 160;
           WaitForm.Position := poScreenCenter;
-          Cancelado := False;
+          FCancelado := False;
           BtnCancelar := TButton.Create(WaitForm);
           BtnCancelar.Parent := WaitForm;
           BtnCancelar.Caption := '&Cancelar';
@@ -820,14 +820,14 @@ begin
           if mode = pmWindows then
             begin
               For DA := 0 to Pagina.Images.Count-1 do
-                if not Cancelado then
+                if not FCancelado then
                   begin
                     Grafico := Pagina.Images[DA];
                     Draw(Round(MargenIzquierdo+AnchoDeColumna*(Grafico.Col)),Round(MargenSuperior+AltoDeLinea*(Grafico.Line))+1,Grafico.Picture.Graphic);
                   end;
             end;
           For EA := 0 to Pagina.WrittenText.Count-1 do
-            if not Cancelado then
+            if not FCancelado then
               begin
                 Escritura := Pagina.WrittenText.Items[EA];
                 if Escritura.Line <= Lines then
@@ -867,7 +867,7 @@ begin
                 Application.ProcessMessages;
               end;
           for I := 0 to Pagina.VerticalLines.Count-1 do
-            if not Cancelado then
+            if not FCancelado then
               begin
                 LineaVertical := Pagina.VerticalLines[I];
                 if LineaVertical.Col <= CantColumnas then
@@ -910,7 +910,7 @@ begin
                 Application.ProcessMessages;
               end;
           for I := 0 to Pagina.HorizontalLines.Count-1 do
-            if not Cancelado then
+            if not FCancelado then
               begin
                 LineaHorizontal := Pagina.HorizontalLines[I];
                 if LineaHorizontal.Line <= Lines then
@@ -1185,7 +1185,7 @@ end;
 
 procedure TRSPrinter.BtnCancelarClick(sender: TObject);
 begin
-  Cancelado := True;
+  FCancelado := True;
 end;
 
 end.

@@ -105,7 +105,7 @@ implementation
 {$R *.DFM}
 
 uses
-  RSPrint, RSPrint.Preview.PrinterSetup, RSPrint.CommonTypes, ZLibConst;
+  RSPrint, RSPrint.Preview.PrinterSetup, RSPrint.Types.CommonTypes, ZLibConst;
 
 const
   winspl  = 'winspool.drv';

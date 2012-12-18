@@ -3,7 +3,7 @@ unit RSPrint.Types.Page;
 interface
 
 uses
-  Classes, Generics.Collections, RSPrint.CommonTypes, RSPrint.Types.Img;
+  Classes, Generics.Collections, RSPrint.Types.CommonTypes, RSPrint.Types.Img;
 
 type
 

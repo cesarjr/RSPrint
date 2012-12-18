@@ -3,7 +3,7 @@ unit RSPrint.FastMode;
 interface
 
 uses
-  Classes, RSPrint.CommonTypes, RSPrint.Types.Document, RSPrint.Types.Page, RSPrint.FastMode.FastDevice;
+  Classes, RSPrint.Types.CommonTypes, RSPrint.Types.Document, RSPrint.Types.Page, RSPrint.FastMode.FastDevice;
 
 type
   TFastMode = class

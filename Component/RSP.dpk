@@ -35,7 +35,7 @@ contains
   RSPrint.Preview.PrinterSetup in 'RSPrint.Preview.PrinterSetup.pas' {FrmPrinterSetup},
   RSPrint.Utils in 'RSPrint.Utils.pas',
   RSPrint.FastMode in 'RSPrint.FastMode.pas',
-  RSPrint.CommonTypes in 'RSPrint.CommonTypes.pas',
+  RSPrint.Types.CommonTypes in 'RSPrint.Types.CommonTypes.pas',
   RSPrint.FastMode.FastDevice in 'RSPrint.FastMode.FastDevice.pas',
   RSPrint.FastMode.FastDeviceSpool in 'RSPrint.FastMode.FastDeviceSpool.pas',
   RSPrint.FastMode.FastDeviceFile in 'RSPrint.FastMode.FastDeviceFile.pas',
