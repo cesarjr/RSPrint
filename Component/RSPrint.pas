@@ -9,8 +9,8 @@ uses
 type
   TRSPrinter = class(TComponent)
   private const
-    PREVIEW_FONT_NAME = 'courier new';
-    PREVIEW_FONT_SIZE = 18;
+    WINDOWS_MODE_FONT_NAME = 'courier new';
+    WINDOWS_MODE_FONT_SIZE = 18;
 
   private
     FDocument: TDocument;
@@ -57,6 +57,8 @@ type
     procedure SetTransliterate(const value: Boolean);
     function GetCurrentPageNumber: Integer;
 
+    procedure BuildPageToPrint(number: Integer; page: TMetaFile; mode: TPrinterMode);
+
   protected
     procedure Loaded; override;
 
@@ -70,6 +72,8 @@ type
 
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure BuildPageToPreview(number: Integer; page: TMetaFile; mode: TPrinterMode; showDialog: Boolean);
 
     procedure BeginDoc;
     procedure EndDoc;
@@ -92,7 +96,6 @@ type
     function GetModelName: string;
     procedure GetModels(models: TStrings);
 
-    procedure BuildPage(number: Integer; page: TMetaFile; toPrint: Boolean; mode: TPrinterMode; showDialog: Boolean);
     function PrintPage(number: Integer): Boolean;
     function GetPrintingWidth: Integer;
     function GetPrintingHeight: Integer;
@@ -563,16 +566,8 @@ begin
 end;
 
 procedure TRSPrinter.PreviewReal;
-var
-  PreviewForm: TForm;
 begin
-  PreviewForm := TFrmPreview.Create(self);
-  try
-    TFrmPreview(PreviewForm).RSPrinter := self;
-    PreviewForm.ShowModal;
-  finally
-    PreviewForm.Release;
-  end;
+  TFrmPreview.Execute(self);
 end;
 
 procedure TRSPrinter.Print;
@@ -583,7 +578,7 @@ begin
     PreviewReal;
 end;
 
-procedure TRSPrinter.BuildPage(number: Integer; page: TMetaFile; toPrint: Boolean; mode: TPrinterMode; showDialog: Boolean);
+procedure TRSPrinter.BuildPageToPrint(number: Integer; page: TMetaFile; mode: TPrinterMode);
 var
   Pagina: TPage;
   Grafico: TImg;
@@ -607,353 +602,375 @@ var
   WaitPanel: TPanel;
   BtnCancelar: TButton;
 begin
-  if toPrint then
-    begin
-      if DobleWide in FastFont then
-        CantColumnas := 42
-      else if Compress in FastFont then
-        CantColumnas := 136
-      else
-        CantColumnas := 81;
+  if DobleWide in FDocument.DefaultFont then
+    CantColumnas := 42
+  else if Compress in FDocument.DefaultFont then
+    CantColumnas := 136
+  else
+    CantColumnas := 81;
 
-      With TMetaFileCanvas.Create(page,0) do
-        try
-          Brush.Color := clWhite;
-          AnchoDeColumna := 640/CantColumnas;//(Hoja.Width-(2*MargenIzquierdo))/CantColumnas;
-          AltoDeLinea := 12;//Round(AnchoDeColumna/Ancho*Alto);
-          page.Width := Round(AnchoDeColumna*CantColumnas);//Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
-          page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2));
-          Font.Name := PREVIEW_FONT_NAME;
-          Font.Size := PREVIEW_FONT_SIZE;
-          Font.Pitch := fpFixed;
-          Ancho := TextWidth('X');
-          Alto := TextHeight('X');
-          FillRect(Rect(0,0,(page.Width)-1,(page.Height-1))); //80*(Ancho),66*Alto));
-          Pagina := FDocument.Pages.Items[number-1];
+  With TMetaFileCanvas.Create(page,0) do
+    try
+      Brush.Color := clWhite;
+      AnchoDeColumna := 640/CantColumnas;//(Hoja.Width-(2*MargenIzquierdo))/CantColumnas;
+      AltoDeLinea := 12;//Round(AnchoDeColumna/Ancho*Alto);
+      page.Width := Round(AnchoDeColumna*CantColumnas);//Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
+      page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2));
+      Font.Name := WINDOWS_MODE_FONT_NAME;
+      Font.Size := WINDOWS_MODE_FONT_SIZE;
+      Font.Pitch := fpFixed;
+      Ancho := TextWidth('X');
+      Alto := TextHeight('X');
+      FillRect(Rect(0,0,(page.Width)-1,(page.Height-1))); //80*(Ancho),66*Alto));
+      Pagina := FDocument.Pages.Items[number-1];
 
-          if mode = pmWindows then
-            begin
-              For DA := 0 to Pagina.Images.Count-1 do
-                begin
-                  Grafico := Pagina.Images[DA];
-                  Draw(Round(AnchoDeColumna*(Grafico.Col)),Round(FWinSupMargin+AltoDeLinea*(Grafico.Line)),Grafico.Picture.Graphic);
-                end;
-            end;
-
-          for EA := 0 to Pagina.WrittenText.Count-1 do
-            begin
-              Escritura := Pagina.WrittenText.Items[EA];
-              if Escritura.Line <= Lines then
-                begin
-                  Texto := TMetaFile.Create;
-                  Texto.Width := Ancho*Length(Escritura.Text);
-                  Texto.Height := Alto;
-                  With TMetaFileCanvas.Create(Texto,0) do
-                    try
-                      Font.Name := PREVIEW_FONT_NAME;
-                      Font.Size := PREVIEW_FONT_SIZE;
-                      Font.Pitch := fpFixed;
-                      if Bold in Escritura.Font then
-                        Font.Style := Font.Style + [fsBold]
-                      else
-                        Font.Style := Font.Style - [fsBold];
-                      if Italic in Escritura.Font then
-                        Font.Style := Font.Style + [fsItalic]
-                      else
-                        Font.Style := Font.Style - [fsItalic];
-                      if Underline in Escritura.Font then
-                        Font.Style := Font.Style + [fsUnderline]
-                      else
-                        Font.Style := Font.Style - [fsUnderline];
-                      TextOut(0, 0, Escritura.Text);
-                    finally
-                      Free
-                    end;
-
-                  if (DobleWide in Escritura.Font) and not (DobleWide in FastFont) then
-                    StretchDraw(rect(Round(AnchoDeColumna*(Escritura.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line-1))-1,Round(AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/42),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line))+1),Texto)
-                  else if (Compress in Escritura.Font) and not (Compress in FastFont) then
-                    StretchDraw(rect(Round(AnchoDeColumna*(Escritura.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line-1))-1,Round(AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/140),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line))+1),Texto)
-                  else
-                    StretchDraw(rect(Round(AnchoDeColumna*(Escritura.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line-1))-1,Round(AnchoDeColumna*(Escritura.Col+Length(Escritura.Text))),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line))+1),Texto);
-                  Texto.Free;
-                end;
-              Application.ProcessMessages;
-            end;
-          for I := 0 to Pagina.VerticalLines.Count-1 do
-            begin
-              LineaVertical := Pagina.VerticalLines[I];
-              if LineaVertical.Col <= CantColumnas then
-                begin
-                  If LineaVertical.Kind = ltSingle then
-                    begin
-                      MoveTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
-                             Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
-                      if LineaVertical.Line2 <= Lines then
-                        LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
-                      else
-                        LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
-                    end
-                  else // Double;
-                    begin
-                      MoveTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
-                             Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
-                      if LineaVertical.Line2 <= Lines then
-                        LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
-                      else
-                        LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
-                               Round(FWinSupMargin+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
-                      MoveTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
-                             Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
-                      if LineaVertical.Line2 <= Lines then
-                        LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
-                      else
-                        LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
-                               Round(FWinSupMargin+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
-                    end;
-                end;
-              Application.ProcessMessages;
-            end;
-          for I := 0 to Pagina.HorizontalLines.Count-1 do
-            begin
-              LineaHorizontal := Pagina.HorizontalLines[I];
-              if LineaHorizontal.Line <= Lines then
-                begin
-                  If LineaHorizontal.Kind = ltSingle then
-                    begin
-                      MoveTo(Round(AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
-                             Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
-                      if LineaHorizontal.Col2 <= CantColumnas then
-                        LineTo(Round(AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2))
-                      else
-                        LineTo(Round(AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
-                    end
-                  else // Double;
-                    begin
-                      MoveTo(Round(AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
-                             Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
-                      if LineaHorizontal.Col2 <= CantColumnas then
-                        LineTo(Round(AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1)
-                      else
-                        LineTo(Round(AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
-                      MoveTo(Round(AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
-                             Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
-                      if LineaHorizontal.Col2 <= CantColumnas then
-                        LineTo(Round(AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1)
-                      else
-                        LineTo(Round(AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
-                               Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
-                    end;
-                end;
-              Application.ProcessMessages;
-            end;
-         finally
-          Free;
-        end;
-    end
-  else // ToPreview
-    begin
-      if showDialog then
+      if mode = pmWindows then
         begin
-          WaitForm := TForm.CreateNew(self);
-          WaitForm.Caption := 'Gerando o preview';
-          WaitForm.FormStyle := fsStayOnTop;
-          WaitForm.BorderStyle := bsDialog;
-          WaitForm.BorderIcons := [];
-          WaitForm.Height := 100;
-          WaitForm.Width := 160;
-          WaitForm.Position := poScreenCenter;
-          FCancelado := False;
-          BtnCancelar := TButton.Create(WaitForm);
-          BtnCancelar.Parent := WaitForm;
-          BtnCancelar.Caption := '&Cancelar';
-          BtnCancelar.Align := alBottom;
-          BtnCancelar.OnClick := BtnCancelarClick;
-          WaitPanel := TPanel.Create(WaitForm);
-          WaitPanel.Parent := WaitForm;
-          WaitPanel.Align := alClient;
-          WaitPanel.Caption := 'Por favor espere...';
-          WaitForm.Show;
-          WaitForm.Update;
-        end
-      else
-        WaitForm := nil;
-      if DobleWide in FastFont then
-        CantColumnas := 42
-      else if Compress in FastFont then
-        CantColumnas := 136
-      else
-        CantColumnas := 81;
-      With TMetaFileCanvas.Create(page,0) do
-        try
-          Brush.Color := clWhite;
-
-         MargenIzquierdo:=9;
-         MargenSuperior:=9;
-
-
-          AnchoDeColumna := 640/CantColumnas;//(Hoja.Width-(2*MargenIzquierdo))/CantColumnas;
-          AltoDeLinea := 12;//Round(AnchoDeColumna/Ancho*Alto);
-
-          page.Width := Round(AnchoDeColumna*CantColumnas)+2*MargenIzquierdo;//Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
-          page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2))+2*MargenSuperior;
-          Font.Name := PREVIEW_FONT_NAME;
-          Font.Size := PREVIEW_FONT_SIZE;
-          Font.Pitch := fpFixed;
-          Ancho := TextWidth('X');
-          Alto := TextHeight('X');
-          FillRect(Rect(0,0,(page.Width)-1,(page.Height)-1)); //80*(Ancho),66*Alto));
-          Rectangle(0,0,page.Width,page.Height);
-          MargenSuperior := MargenSuperior+FWinSupMargin;
-          Pen.Style := psSolid;
-          Pen.Color := clBlack;
-          Pagina := FDocument.Pages.Items[number-1];
-          if mode = pmWindows then
+          For DA := 0 to Pagina.Images.Count-1 do
             begin
-              For DA := 0 to Pagina.Images.Count-1 do
-                if not FCancelado then
-                  begin
-                    Grafico := Pagina.Images[DA];
-                    Draw(Round(MargenIzquierdo+AnchoDeColumna*(Grafico.Col)),Round(MargenSuperior+AltoDeLinea*(Grafico.Line))+1,Grafico.Picture.Graphic);
-                  end;
+              Grafico := Pagina.Images[DA];
+              Draw(Round(AnchoDeColumna*(Grafico.Col)),Round(FWinSupMargin+AltoDeLinea*(Grafico.Line)),Grafico.Picture.Graphic);
             end;
-          For EA := 0 to Pagina.WrittenText.Count-1 do
-            if not FCancelado then
-              begin
-                Escritura := Pagina.WrittenText.Items[EA];
-                if Escritura.Line <= Lines then
-                  begin
-                    Texto := TMetaFile.Create;
-                    Texto.Width := Ancho*Length(Escritura.Text);
-                    Texto.Height := Alto;
-                    With TMetaFileCanvas.Create(Texto,0) do
-                      try
-                        Font.Name := PREVIEW_FONT_NAME;
-                        Font.Size := PREVIEW_FONT_SIZE;
-                        Font.Pitch := fpFixed;
-                        if Bold in Escritura.Font then
-                          Font.Style := Font.Style + [fsBold]
-                        else
-                          Font.Style := Font.Style - [fsBold];
-                        if Italic in Escritura.Font then
-                          Font.Style := Font.Style + [fsItalic]
-                        else
-                          Font.Style := Font.Style - [fsItalic];
-                        if Underline in Escritura.Font then
-                          Font.Style := Font.Style + [fsUnderline]
-                        else
-                          Font.Style := Font.Style - [fsUnderline];
-                          TextOut(0,0,Escritura.Text);
-                      finally
-                        Free
-                      end;
-                    if (DobleWide in Escritura.Font) and not (DobleWide in FastFont) then
-                      StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/42),Round(MargenSuperior+AltoDeLinea*(Escritura.Line))+1),Texto)
-                    else if (Compress in Escritura.Font) and not (Compress in FastFont) then
-                      StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/140),Round(MargenSuperior+AltoDeLinea*(Escritura.Line))+1),Texto)
-                    else
-                      StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col+Length(Escritura.Text))),Round(MargenSuperior+AltoDeLinea*(Escritura.Line))+1),Texto);
-                    Texto.Free;
-                  end;
-                Application.ProcessMessages;
-              end;
-          for I := 0 to Pagina.VerticalLines.Count-1 do
-            if not FCancelado then
-              begin
-                LineaVertical := Pagina.VerticalLines[I];
-                if LineaVertical.Col <= CantColumnas then
-                  begin
-
-                  (*   *)
-                    If LineaVertical.Kind = ltSingle then
-                      begin
-                        MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
-                               Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
-                        if LineaVertical.Line2 <= Lines then
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
-                        else
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
-                      end
-                    else // Double;
-                      begin
-                        MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
-                               Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
-                        if LineaVertical.Line2 <= Lines then
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
-                        else
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
-                                 Round(MargenSuperior+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
-                        MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
-                               Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
-                        if LineaVertical.Line2 <= Lines then
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
-                        else
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
-                                 Round(MargenSuperior+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
-                      end;
-                      (*   *)
-
-                  end;
-                Application.ProcessMessages;
-              end;
-          for I := 0 to Pagina.HorizontalLines.Count-1 do
-            if not FCancelado then
-              begin
-                LineaHorizontal := Pagina.HorizontalLines[I];
-                if LineaHorizontal.Line <= Lines then
-                  begin
-                    If LineaHorizontal.Kind = ltSingle then
-                      begin
-                        MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
-                               Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
-                        if LineaHorizontal.Col2 <= CantColumnas then
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2))
-                        else
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
-                      end
-                    else // Double;
-                      begin
-                        MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
-                               Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
-                        if LineaHorizontal.Col2 <= CantColumnas then
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1)
-                        else
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
-                        MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
-                               Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
-                        if LineaHorizontal.Col2 <= CantColumnas then
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1)
-                        else
-                          LineTo(Round(MargenIzquierdo+AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
-                                 Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
-                      end;
-                  end;
-                Application.ProcessMessages;
-              end;
-         finally
-          Free;
         end;
-      if showDialog then
-        WaitForm.Free;
+
+      for EA := 0 to Pagina.WrittenText.Count-1 do
+        begin
+          Escritura := Pagina.WrittenText.Items[EA];
+          if Escritura.Line <= Lines then
+            begin
+              Texto := TMetaFile.Create;
+              Texto.Width := Ancho*Length(Escritura.Text);
+              Texto.Height := Alto;
+              With TMetaFileCanvas.Create(Texto,0) do
+                try
+                  Font.Name := WINDOWS_MODE_FONT_NAME;
+                  Font.Size := WINDOWS_MODE_FONT_SIZE;
+                  Font.Pitch := fpFixed;
+                  if Bold in Escritura.Font then
+                    Font.Style := Font.Style + [fsBold]
+                  else
+                    Font.Style := Font.Style - [fsBold];
+                  if Italic in Escritura.Font then
+                    Font.Style := Font.Style + [fsItalic]
+                  else
+                    Font.Style := Font.Style - [fsItalic];
+                  if Underline in Escritura.Font then
+                    Font.Style := Font.Style + [fsUnderline]
+                  else
+                    Font.Style := Font.Style - [fsUnderline];
+                  TextOut(0, 0, Escritura.Text);
+                finally
+                  Free
+                end;
+
+              if (DobleWide in Escritura.Font) and not (DobleWide in FDocument.DefaultFont) then
+                StretchDraw(rect(Round(AnchoDeColumna*(Escritura.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line-1))-1,Round(AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/42),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line))+1),Texto)
+              else if (Compress in Escritura.Font) and not (Compress in FDocument.DefaultFont) then
+                StretchDraw(rect(Round(AnchoDeColumna*(Escritura.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line-1))-1,Round(AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/140),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line))+1),Texto)
+              else
+                StretchDraw(rect(Round(AnchoDeColumna*(Escritura.Col)),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line-1))-1,Round(AnchoDeColumna*(Escritura.Col+Length(Escritura.Text))),Round(FWinSupMargin+AltoDeLinea*(Escritura.Line))+1),Texto);
+              Texto.Free;
+            end;
+          Application.ProcessMessages;
+        end;
+      for I := 0 to Pagina.VerticalLines.Count-1 do
+        begin
+          LineaVertical := Pagina.VerticalLines[I];
+          if LineaVertical.Col <= CantColumnas then
+            begin
+              If LineaVertical.Kind = ltSingle then
+                begin
+                  MoveTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
+                         Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
+                  if LineaVertical.Line2 <= Lines then
+                    LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
+                  else
+                    LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
+                end
+              else // Double;
+                begin
+                  MoveTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
+                         Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
+                  if LineaVertical.Line2 <= Lines then
+                    LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
+                  else
+                    LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
+                           Round(FWinSupMargin+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
+                  MoveTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
+                         Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
+                  if LineaVertical.Line2 <= Lines then
+                    LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
+                  else
+                    LineTo(Round(AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
+                           Round(FWinSupMargin+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
+                end;
+            end;
+          Application.ProcessMessages;
+        end;
+      for I := 0 to Pagina.HorizontalLines.Count-1 do
+        begin
+          LineaHorizontal := Pagina.HorizontalLines[I];
+          if LineaHorizontal.Line <= Lines then
+            begin
+              If LineaHorizontal.Kind = ltSingle then
+                begin
+                  MoveTo(Round(AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
+                         Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
+                  if LineaHorizontal.Col2 <= CantColumnas then
+                    LineTo(Round(AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2))
+                  else
+                    LineTo(Round(AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
+                end
+              else // Double;
+                begin
+                  MoveTo(Round(AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
+                         Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
+                  if LineaHorizontal.Col2 <= CantColumnas then
+                    LineTo(Round(AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1)
+                  else
+                    LineTo(Round(AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
+                  MoveTo(Round(AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
+                         Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
+                  if LineaHorizontal.Col2 <= CantColumnas then
+                    LineTo(Round(AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1)
+                  else
+                    LineTo(Round(AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
+                           Round(FWinSupMargin+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
+                end;
+            end;
+          Application.ProcessMessages;
+        end;
+     finally
+      Free;
     end;
+end;
+
+procedure TRSPrinter.BuildPageToPreview(number: Integer; page: TMetaFile; mode: TPrinterMode; showDialog: Boolean);
+var
+  Pagina: TPage;
+  Grafico: TImg;
+  Escritura: TWrittenText;
+  EA: Integer; // LINEA ACTUAL
+  DA: Integer;
+  LineaHorizontal: THorizontalLine;
+  LineaVertical: TVerticalLine;
+  Derecha: Integer;
+  Abajo: Integer;
+  Texto: TMetafile;
+  Ancho: Integer;
+  Alto: Integer;
+  MargenIzquierdo: Integer;
+  MargenSuperior: Integer;
+  AltoDeLinea: Double;
+  AnchoDeColumna: Double;
+  CantColumnas: Integer;
+  I: Integer;
+  WaitForm: TForm;
+  WaitPanel: TPanel;
+  BtnCancelar: TButton;
+begin
+  if showDialog then
+  begin
+    WaitForm := TForm.CreateNew(self);
+    WaitForm.Caption := 'Gerando o preview';
+    WaitForm.FormStyle := fsStayOnTop;
+    WaitForm.BorderStyle := bsDialog;
+    WaitForm.BorderIcons := [];
+    WaitForm.Height := 100;
+    WaitForm.Width := 160;
+    WaitForm.Position := poScreenCenter;
+    FCancelado := False;
+    BtnCancelar := TButton.Create(WaitForm);
+    BtnCancelar.Parent := WaitForm;
+    BtnCancelar.Caption := '&Cancelar';
+    BtnCancelar.Align := alBottom;
+    BtnCancelar.OnClick := BtnCancelarClick;
+    WaitPanel := TPanel.Create(WaitForm);
+    WaitPanel.Parent := WaitForm;
+    WaitPanel.Align := alClient;
+    WaitPanel.Caption := 'Por favor espere...';
+    WaitForm.Show;
+    WaitForm.Update;
+  end
+  else
+    WaitForm := nil;
+
+  if DobleWide in FDocument.DefaultFont then
+    CantColumnas := 42
+  else if Compress in FDocument.DefaultFont then
+    CantColumnas := 136
+  else
+    CantColumnas := 81;
+
+  With TMetaFileCanvas.Create(page,0) do
+    try
+      Brush.Color := clWhite;
+
+      MargenIzquierdo := 9;
+      MargenSuperior := 9;
+
+      AnchoDeColumna := 640 / CantColumnas; //(Hoja.Width-(2*MargenIzquierdo))/CantColumnas;
+      AltoDeLinea := 12; //Round(AnchoDeColumna/Ancho*Alto);
+
+      page.Width := Round(AnchoDeColumna*CantColumnas)+2*MargenIzquierdo; //Round(GetDeviceCaps(Printer.Handle,PHYSICALWIDTH)/GetDeviceCaps(Printer.Handle,LOGPIXELSX)*80);
+      page.Height := Round(AltoDeLinea*(Trunc(PageHeightP*6)-2))+2*MargenSuperior;
+      Font.Name := WINDOWS_MODE_FONT_NAME;
+      Font.Size := WINDOWS_MODE_FONT_SIZE;
+      Font.Pitch := fpFixed;
+      Ancho := TextWidth('X');
+      Alto := TextHeight('X');
+      FillRect(Rect(0,0,(page.Width)-1,(page.Height)-1)); //80*(Ancho),66*Alto));
+      Rectangle(0,0,page.Width,page.Height);
+      MargenSuperior := MargenSuperior+FWinSupMargin;
+      Pen.Style := psSolid;
+      Pen.Color := clBlack;
+      Pagina := FDocument.Pages.Items[number-1];
+      if mode = pmWindows then
+        begin
+          For DA := 0 to Pagina.Images.Count-1 do
+            if not FCancelado then
+              begin
+                Grafico := Pagina.Images[DA];
+                Draw(Round(MargenIzquierdo+AnchoDeColumna*(Grafico.Col)),Round(MargenSuperior+AltoDeLinea*(Grafico.Line))+1,Grafico.Picture.Graphic);
+              end;
+        end;
+      For EA := 0 to Pagina.WrittenText.Count-1 do
+        if not FCancelado then
+          begin
+            Escritura := Pagina.WrittenText.Items[EA];
+            if Escritura.Line <= Lines then
+              begin
+                Texto := TMetaFile.Create;
+                Texto.Width := Ancho*Length(Escritura.Text);
+                Texto.Height := Alto;
+                With TMetaFileCanvas.Create(Texto,0) do
+                  try
+                    Font.Name := WINDOWS_MODE_FONT_NAME;
+                    Font.Size := WINDOWS_MODE_FONT_SIZE;
+                    Font.Pitch := fpFixed;
+                    if Bold in Escritura.Font then
+                      Font.Style := Font.Style + [fsBold]
+                    else
+                      Font.Style := Font.Style - [fsBold];
+                    if Italic in Escritura.Font then
+                      Font.Style := Font.Style + [fsItalic]
+                    else
+                      Font.Style := Font.Style - [fsItalic];
+                    if Underline in Escritura.Font then
+                      Font.Style := Font.Style + [fsUnderline]
+                    else
+                      Font.Style := Font.Style - [fsUnderline];
+                      TextOut(0,0,Escritura.Text);
+                  finally
+                    Free
+                  end;
+                if (DobleWide in Escritura.Font) and not (DobleWide in FDocument.DefaultFont) then
+                  StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/42),Round(MargenSuperior+AltoDeLinea*(Escritura.Line))+1),Texto)
+                else if (Compress in Escritura.Font) and not (Compress in FDocument.DefaultFont) then
+                  StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)+Length(Escritura.Text)*page.Width/140),Round(MargenSuperior+AltoDeLinea*(Escritura.Line))+1),Texto)
+                else
+                  StretchDraw(rect(Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col)),Round(MargenSuperior+AltoDeLinea*(Escritura.Line-1))-1,Round(MargenIzquierdo+AnchoDeColumna*(Escritura.Col+Length(Escritura.Text))),Round(MargenSuperior+AltoDeLinea*(Escritura.Line))+1),Texto);
+                Texto.Free;
+              end;
+            Application.ProcessMessages;
+          end;
+      for I := 0 to Pagina.VerticalLines.Count-1 do
+        if not FCancelado then
+          begin
+            LineaVertical := Pagina.VerticalLines[I];
+            if LineaVertical.Col <= CantColumnas then
+              begin
+
+              (*   *)
+                If LineaVertical.Kind = ltSingle then
+                  begin
+                    MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
+                           Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
+                    if LineaVertical.Line2 <= Lines then
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
+                    else
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
+                  end
+                else // Double;
+                  begin
+                    MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
+                           Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
+                    if LineaVertical.Line2 <= Lines then
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
+                             Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
+                    else
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2-1),
+                             Round(MargenSuperior+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
+                    MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
+                           Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line1-1)+AltoDeLinea/2));
+                    if LineaVertical.Line2 <= Lines then
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
+                             Round(MargenSuperior+AltoDeLinea*(LineaVertical.Line2-1)+AltoDeLinea/2))
+                    else
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaVertical.Col)+AnchoDeColumna/2+1),
+                             Round(MargenSuperior+AltoDeLinea*(Lines-1)+AltoDeLinea/2));
+                  end;
+                  (*   *)
+
+              end;
+            Application.ProcessMessages;
+          end;
+      for I := 0 to Pagina.HorizontalLines.Count-1 do
+        if not FCancelado then
+          begin
+            LineaHorizontal := Pagina.HorizontalLines[I];
+            if LineaHorizontal.Line <= Lines then
+              begin
+                If LineaHorizontal.Kind = ltSingle then
+                  begin
+                    MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
+                           Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
+                    if LineaHorizontal.Col2 <= CantColumnas then
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2))
+                    else
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2));
+                  end
+                else // Double;
+                  begin
+                    MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
+                           Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
+                    if LineaHorizontal.Col2 <= CantColumnas then
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1)
+                    else
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)-1);
+                    MoveTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col1)+AnchoDeColumna/2),
+                           Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
+                    if LineaHorizontal.Col2 <= CantColumnas then
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(LineaHorizontal.Col2)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1)
+                    else
+                      LineTo(Round(MargenIzquierdo+AnchoDeColumna*(CantColumnas)+AnchoDeColumna/2),
+                             Round(MargenSuperior+AltoDeLinea*(LineaHorizontal.Line-1)+AltoDeLinea/2)+1);
+                  end;
+              end;
+            Application.ProcessMessages;
+          end;
+     finally
+      Free;
+    end;
+
+  if showDialog then
+    WaitForm.Free;
 end;
 
 function TRSPrinter.GetPrintingWidth: Integer;
@@ -996,7 +1013,7 @@ begin
     Img.Width := 640; // PrintingWidth{PageWidth} div 4; // 640;
     Img.Height := 12*Lines; //PrintingHeight{PageHeight} div 4; // 1056;
     try
-      BuildPage(number, Img, True, pmWindows, False);
+      BuildPageToPrint(number, Img, pmWindows);
       Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Img);
       Printer.EndDoc;
     except
@@ -1044,13 +1061,13 @@ begin
   Img := TMetaFile.Create;
   Img.Width := 640; //PrintingWidth{PageWidth} div 4; // 640;
   Img.Height := 12 * Lines; //PrintingHeight{PageHeight} div 4; // 1056;
-  BuildPage(1,Img,True,pmWindows,False);
+  BuildPageToPrint(1, Img, pmWindows);
   Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Img);
   if FDocument.Pages.Count > 1 then
     for I := 2 to FDocument.Pages.Count do
     begin
       Printer.NewPage;
-      BuildPage(I,Img,True,pmWindows,False);
+      BuildPageToPrint(I, Img, pmWindows);
       Printer.Canvas.StretchDraw(Rect(0,0,Printer.PageWidth,Printer.PageHeight),Img);
     end;
   Printer.EndDoc;

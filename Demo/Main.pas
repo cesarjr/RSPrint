@@ -30,7 +30,7 @@ var
 implementation
 
 uses
-  RSPrint.CommonTypes, WinSpool;
+  RSPrint.Types.CommonTypes, WinSpool;
 
 {$R *.dfm}
 

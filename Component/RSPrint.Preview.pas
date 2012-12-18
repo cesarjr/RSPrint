@@ -4,32 +4,32 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Spin, Printers, Zlib,
-  Buttons, ActnList, ComCtrls;
+  Buttons, ActnList, ComCtrls, RSPrint;
 
 type
   TFrmPreview = class(TForm)
     Scroller: TScrollBox;
-    Shower: TPaintBox;
+    Display: TPaintBox;
     PrinterPanelH: TPanel;
-    LCopiasV: TLabel;
-    CopiasV: TSpinEdit;
-    BtnPagPriV: TSpeedButton;
-    BtnPagAntV: TSpeedButton;
-    BtnPageDirect: TSpeedButton;
-    BtnPagSigV: TSpeedButton;
-    BtnPagUltV: TSpeedButton;
-    ZoomShowerV: TSpinEdit;
-    LZoomV: TLabel;
-    BtnAnchoV: TSpeedButton;
-    BtnCompletaV: TSpeedButton;
-    BtnImpActualV: TSpeedButton;
-    BtnImpTodoV: TSpeedButton;
-    BtnPropiedadesV: TSpeedButton;
+    labCopies: TLabel;
+    edtCopies: TSpinEdit;
+    btnFirstPage: TSpeedButton;
+    btnPriorPage: TSpeedButton;
+    btnGoToPageNumber: TSpeedButton;
+    btnNextPage: TSpeedButton;
+    btnLastPage: TSpeedButton;
+    edtZoom: TSpinEdit;
+    labZoom: TLabel;
+    btnFitOnWindow: TSpeedButton;
+    btnShowEntirePage: TSpeedButton;
+    btnPrintCurrentPage: TSpeedButton;
+    btnPrintAllPages: TSpeedButton;
+    btnPrintSetup: TSpeedButton;
     Bevel1: TBevel;
-    SpeedButton2: TSpeedButton;
+    btnClose: TSpeedButton;
     Bevel2: TBevel;
     Bevel3: TBevel;
-    ActionList1: TActionList;
+    ActionList: TActionList;
     ActUp: TAction;
     ActDown: TAction;
     ActFechar: TAction;
@@ -44,17 +44,17 @@ type
     StatusBar1: TStatusBar;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure CopiasVChange(Sender: TObject);
-    procedure ZoomShowerVChange(Sender: TObject);
-    procedure ShowerPaint(Sender: TObject);
-    procedure BtnAnchoVClick(Sender: TObject);
-    procedure BtnCompletaVClick(Sender: TObject);
-    procedure BtnImpActualVClick(Sender: TObject);
-    procedure BtnImpTodoVClick(Sender: TObject);
+    procedure edtCopiesChange(Sender: TObject);
+    procedure edtZoomChange(Sender: TObject);
+    procedure DisplayPaint(Sender: TObject);
+    procedure btnFitOnWindowClick(Sender: TObject);
+    procedure btnShowEntirePageClick(Sender: TObject);
+    procedure btnPrintCurrentPageClick(Sender: TObject);
+    procedure btnPrintAllPagesClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure ShowerMouseDown(Sender: TObject; Button: TMouseButton;
+    procedure DisplayMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure BtnPropiedadesVClick(Sender: TObject);
+    procedure btnPrintSetupClick(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure LTotPagHClick(Sender: TObject);
     procedure FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
@@ -71,98 +71,71 @@ type
     procedure ActF1Execute(Sender: TObject);
     procedure ActPgUpExecute(Sender: TObject);
     procedure ActPgDnExecute(Sender: TObject);
-    procedure ActEnterExecute(Sender: TObject);
 
   private
-    FPagina : integer;
-    FZoom : Double;
-    DontDraw : Boolean;
-    HojasDib,
-    HojasNum : TList;
-    procedure GetHoja(Numero : integer; Hoja : TMetaFile; ViewDialog: boolean);
-    procedure UpdateStatus(Pag_Atual,Total_paginas:integer);
+    FPagina: integer;
+    FZoom: Double;
+    DontDraw: Boolean;
+    HojasDib: TList;
+    HojasNum: TList;
+
+    procedure GetHoja(Numero: Integer; Hoja: TMetaFile; ViewDialog: boolean);
+    procedure UpdateStatus(Pag_Atual, Total_paginas: Integer);
     procedure PageChange;
 
   public
-    RSPrinter : TComponent;
-    Hoja : TMetaFile;
+    FRSPrinter: TRSPrinter;
+    Hoja: TMetaFile;
+
+    class procedure Execute(AOwner: TRSPrinter);
 
   end;
-
-  function WOpenPrinter(pPrinterName: PChar; var phPrinter: THandle; pDefault: pointer):BOOL; stdcall;
-  function WClosePrinter(hPrinter: THandle): BOOL; stdcall;
-  function WGetPrinter(hPrinter: THandle; Level: DWORD; pPrinter: Pointer; cbBuf: DWORD; pcbNeeded: PDWORD): BOOL; stdcall;
-  function WSetPrinter(hPrinter: THandle; Level: DWORD; pPrinter: Pointer; Command: DWORD): BOOL; stdcall;
-  function WDocumentProperties(hWnd: HWND; hPrinter: THandle; pDeviceName: PChar;
-    const pDevModeOutput: TDeviceMode; var pDevModeInput: TDeviceMode;
-    fMode: DWORD): Longint; stdcall;
-
-var
-  FrmPreview: TFrmPreview;
 
 implementation
 
 {$R *.DFM}
 
 uses
-  RSPrint, RSPrint.Preview.PrinterSetup, RSPrint.Types.CommonTypes, ZLibConst;
+  RSPrint.Preview.PrinterSetup, RSPrint.Types.CommonTypes, ZLibConst;
 
-const
-  winspl  = 'winspool.drv';
+class procedure TFrmPreview.Execute(AOwner: TRSPrinter);
+var
+  FrmPreview: TFrmPreview;
+begin
+  FrmPreview := TFrmPreview.Create(AOwner);
+  try
+    FrmPreview.FRSPrinter := AOwner;
+    FrmPreview.ShowModal;
+  finally
+    FrmPreview.Release;
+  end;
+end;
 
-function WOpenPrinter; external winspl name 'OpenPrinterA';
-function WClosePrinter; external winspl name 'ClosePrinter';
-function WGetPrinter; external winspl name 'GetPrinterA';
-function WSetPrinter; external winspl name 'SetPrinterA';
-function WDocumentProperties; external winspl name 'DocumentPropertiesA';
-
-
-procedure tFrmPreview.UpdateStatus(Pag_Atual,Total_paginas:integer);
+procedure TFrmPreview.UpdateStatus(Pag_Atual, Total_paginas: Integer);
 var
   Modo : string;
 begin
-  if TRSPrinter(RSPrinter).Mode = pmfast then
+  if FRSPrinter.Mode = pmFast then
     Modo:= 'Matricial'
   else
     Modo := 'Gráfico';
 
-  StatusBar1.Panels[0].Text := 'Página: '+IntToStr(Pag_atual)+' de '+IntToStr(total_paginas);
-  StatusBar1.Panels[1].Text := 'Zoom: '+FloatToStr(FZoom);
-  StatusBar1.Panels[2].Text := 'Modo: '+ Modo;
-  StatusBar1.Panels[3].Text := '  Impressora: '+Printer.Printers[Printer.PrinterIndex];
+  StatusBar1.Panels[0].Text := 'Página: '+IntToStr(Pag_atual) + ' de ' + IntToStr(total_paginas);
+  StatusBar1.Panels[1].Text := 'Zoom: ' + FloatToStr(FZoom);
+  StatusBar1.Panels[2].Text := 'Modo: ' + Modo;
+  StatusBar1.Panels[3].Text := '  Impressora: ' + Printer.Printers[Printer.PrinterIndex];
 
-  Caption:='Preview de Impressão      Página: '+IntToStr(Pag_atual)+
-  ' de '+IntToStr(total_paginas);
+  Caption := 'Preview de Impressão      Página: ' + IntToStr(Pag_atual) + ' de ' + IntToStr(total_paginas);
 
-  if FPagina = 1 then
-  begin
-    BtnPagPriV.Enabled := False;
-    BtnPagAntV.Enabled := False;
-  end
-  else
-  begin
-    BtnPagPriV.Enabled := True;
-    BtnPagAntV.Enabled := True;
-  end;
+  btnFirstPage.Enabled := (FPagina > 1);
+  btnPriorPage.Enabled := (FPagina > 1);
 
-  if TRSPrinter(RSPrinter).Paginas > FPagina then
-  begin
-    BtnPagSigV.Enabled := True;
-    BtnPagUltV.Enabled := True;
-  end
-  else
-  begin
-    BtnPagSigV.Enabled := False;
-    BtnPagUltV.Enabled := False;
-  end;
+  btnNextPage.Enabled := (FRSPrinter.Paginas > FPagina) and (FRSPrinter.Paginas > 1);
+  btnLastPage.Enabled := (FRSPrinter.Paginas > FPagina) and (FRSPrinter.Paginas > 1);
 
-  if TRSPrinter(RSPrinter).Paginas = 1 then
-  begin
-    BtnPagSigV.Enabled := False;
-    BtnPagUltV.Enabled := False;
-    BtnPageDirect.Enabled := False;
-    BtnImpActualV.Enabled := False;
-  end;
+  btnGoToPageNumber.Enabled := (FRSPrinter.Paginas > 1);
+  btnPrintCurrentPage.Enabled := (FRSPrinter.Paginas > 1);
+
 end;
 
 procedure TFrmPreview.FormShow(Sender: TObject);
@@ -172,28 +145,28 @@ var
 begin
   FPagina := 1;
   Hoja := TMetaFile.Create;
-  Hoja.Width := Round(TRSPrinter(RSPrinter).PageWidthP * 80);
-  Hoja.Height := Round(TRSPrinter(RSPrinter).PageHeightP * 80);
-  Shower.Width := Shower.Canvas.TextWidth('X')*80+20;
-  Shower.Height := Shower.Canvas.TextHeight('X')*66+20;
+  Hoja.Width := Round(FRSPrinter.PageWidthP * 80);
+  Hoja.Height := Round(FRSPrinter.PageHeightP * 80);
+  Display.Width := Display.Canvas.TextWidth('X')*80+20;
+  Display.Height := Display.Canvas.TextHeight('X')*66+20;
 
   FPagina := 1;
-  UpdateStatus(fpagina,TRSPrinter(RSPrinter).Paginas);
+  UpdateStatus(FPagina, FRSPrinter.Paginas);
   GetHoja(FPagina,Hoja,True);
 
-  if TRSPrinter(RSPrinter).Zoom = zWidth then
-    ZoomShowerV.Value := Round((Screen.Width-30)*100/(Hoja.Width))
+  if FRSPrinter.Zoom = zWidth then
+    edtZoom.Value := Round((Screen.Width-30)*100/(Hoja.Width))
   else // a lo alto
   begin
       ZoomAncho := (Screen.Width-30)*100/(Hoja.Width);
       ZoomAlto := (Scroller.ClientHeight)*111/(Hoja.Height);
       if ZoomAncho < ZoomAlto then
-        ZoomShowerV.Value := Round(ZoomAncho)
+        edtZoom.Value := Round(ZoomAncho)
       else
-        ZoomShowerV.Value := Round(ZoomAlto);
+        edtZoom.Value := Round(ZoomAlto);
   end;
 
-  CopiasV.Value := TRSPrinter(RSPrinter).Copies;
+  edtCopies.Value := FRSPrinter.Copies;
 end;
 
 procedure TFrmPreview.FormCreate(Sender: TObject);
@@ -221,27 +194,27 @@ begin
   end;
 end;
 
-procedure TFrmPreview.CopiasVChange(Sender: TObject);
+procedure TFrmPreview.edtCopiesChange(Sender: TObject);
 begin
-  TRSPrinter(RSPrinter).Copies := CopiasV.Value;
+  FRSPrinter.Copies := edtCopies.Value;
 end;
 
-procedure TFrmPreview.ZoomShowerVChange(Sender: TObject);
+procedure TFrmPreview.edtZoomChange(Sender: TObject);
 begin
-  FZoom := ZoomShowerV.Value;
+  FZoom := edtZoom.Value;
   DontDraw := true;
-  ShowerPaint(self);
-  UpdateStatus(fpagina,TRSPrinter(RSPrinter).Paginas);
+  DisplayPaint(self);
+  UpdateStatus(FPagina, FRSPrinter.Paginas);
 end;
 
-procedure TFrmPreview.ShowerPaint(Sender: TObject);
+procedure TFrmPreview.DisplayPaint(Sender: TObject);
 var
   Rect: TRect;
 begin
   if DontDraw then
   begin
-    Shower.Width := Round(Hoja.Width*FZoom/100)+10;
-    Shower.Height := Round(Hoja.Height*FZoom/100)+10;
+    Display.Width := Round(Hoja.Width*FZoom/100)+10;
+    Display.Height := Round(Hoja.Height*FZoom/100)+10;
     DontDraw := False;
     Exit;
   end;
@@ -250,17 +223,17 @@ begin
   Rect.Top := 10;
   Rect.Right := Round(Hoja.Width*FZoom/100);
   Rect.Bottom := Round(Hoja.Height*FZoom/100);
-  Shower.Width := Round(Hoja.Width*FZoom/100)+10;
-  Shower.Height := Round(Hoja.Height*FZoom/100)+10;
-  Shower.Canvas.StretchDraw(Rect,Hoja);
+  Display.Width := Round(Hoja.Width*FZoom/100)+10;
+  Display.Height := Round(Hoja.Height*FZoom/100)+10;
+  Display.Canvas.StretchDraw(Rect,Hoja);
 end;
 
-procedure TFrmPreview.BtnAnchoVClick(Sender: TObject);
+procedure TFrmPreview.btnFitOnWindowClick(Sender: TObject);
 begin
-  ZoomShowerV.Value := Round((Scroller.Width-30)*100/(Hoja.Width));
+  edtZoom.Value := Round((Scroller.Width-30)*100/(Hoja.Width));
 end;
 
-procedure TFrmPreview.BtnCompletaVClick(Sender: TObject);
+procedure TFrmPreview.btnShowEntirePageClick(Sender: TObject);
 var
   ZoomAncho: Double;
   ZoomAlto: Double;
@@ -269,37 +242,37 @@ begin
   ZoomAlto := (Scroller.ClientHeight)*111/(Hoja.Height);
 
   if ZoomAncho < ZoomAlto then
-    ZoomShowerV.Value := Round(ZoomAncho)
+    edtZoom.Value := Round(ZoomAncho)
   else
-    ZoomShowerV.Value := Round(ZoomAlto);
+    edtZoom.Value := Round(ZoomAlto);
 end;
 
 procedure TFrmPreview.PageChange;
 begin
   Enabled := False;
   GetHoja(FPagina,Hoja,False);
-  UpdateStatus(fpagina,TRSPrinter(RSPrinter).Paginas);
-  ShowerPaint(self);
+  UpdateStatus(FPagina, FRSPrinter.Paginas);
+  DisplayPaint(self);
   Enabled := True;
 end;
 
-procedure TFrmPreview.BtnImpActualVClick(Sender: TObject);
+procedure TFrmPreview.btnPrintCurrentPageClick(Sender: TObject);
 begin
   Enabled := False;
-  TRSPrinter(RSPrinter).PrintPage(FPagina);
+  FRSPrinter.PrintPage(FPagina);
   Enabled := True;
   BringToFront;
 end;
 
-procedure TFrmPreview.BtnImpTodoVClick(Sender: TObject);
+procedure TFrmPreview.btnPrintAllPagesClick(Sender: TObject);
 begin
   Enabled := False;
-  TRSPrinter(RSPrinter).PrintAll;
+  FRSPrinter.PrintAll;
   Enabled := True;
   Close;
 end;
 
-procedure TFrmPreview.ShowerMouseDown(Sender: TObject;
+procedure TFrmPreview.DisplayMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   RealPositionH : integer;
@@ -313,8 +286,8 @@ begin
   begin // HAY MOVIMIENTO HORIZONTAL
     Muestra := Scroller.Width;
 
-    if Shower.Width < Muestra then
-      Muestra := Shower.Width;
+    if Display.Width < Muestra then
+      Muestra := Display.Width;
 
     if RealPositionH < (Muestra * 0.5) then
       Scroller.HorzScrollBar.Position := 0
@@ -326,8 +299,8 @@ begin
   begin // HAY MOVIMIENTO VERTICAL
     Muestra := Scroller.Height;
 
-    if Shower.Height < Muestra then
-      Muestra := Shower.Height;
+    if Display.Height < Muestra then
+      Muestra := Display.Height;
 
     if RealPositionV < (Muestra * 0.5) then
       Scroller.VertScrollBar.Position := 0
@@ -337,7 +310,7 @@ begin
 end;
 
 
-procedure TFrmPreview.BtnPropiedadesVClick(Sender: TObject);
+procedure TFrmPreview.btnPrintSetupClick(Sender: TObject);
 var
   ADevice: array [0..255] of Char;
   ADriver: array [0..255] of Char;
@@ -348,52 +321,52 @@ begin
   f:= TFrmPrinterSetup.Create(application);
 
   // Passa para o form de configuracao o modo e impressora atual
-  TRSPrinter(RSPrinter).GetModels(f.ImpressorasTexto);
-  f.ImpTxtSel:=TRSPrinter(RSPrinter).GetModelName;
+  FRSPrinter.GetModels(f.ImpressorasTexto);
+  f.ImpTxtSel := FRSPrinter.GetModelName;
 
   if f.ShowModal = mrOK then
     begin
       if (printer.Canvas.TextHeight('X') = 1) or (printer.Canvas.TextHeight('X') = 83) then
       begin
-        TRSPrinter(RSPrinter).Mode:= pmfast;
-        TRSPrinter(RSPrinter).SetModelName(f.ImpTxtSel);
+        FRSPrinter.Mode:= pmfast;
+        FRSPrinter.SetModelName(f.ImpTxtSel);
       end
       else
-        TRSPrinter(RSPrinter).Mode:= pmwindows;
+        FRSPrinter.Mode:= pmwindows;
 
       // Refaz a pagina con as novas configuracoes
       try
-        TRSPrinter(RSPrinter).PageOrientation := Printer.Orientation;
-        TRSPrinter(RSPrinter).PageWidth := GetDeviceCaps(Printer.Handle, PHYSICALWIDTH);
-        TRSPrinter(RSPrinter).PageHeight := GetDeviceCaps(Printer.Handle, PHYSICALHEIGHT);
-        TRSPrinter(RSPrinter).PageWidthP := TRSPrinter(RSPrinter).PageWidth/GetDeviceCaps(Printer.Handle, LOGPIXELSX);
-        TRSPrinter(RSPrinter).PageHeightP := TRSPrinter(RSPrinter).PageHeight/GetDeviceCaps(Printer.Handle, LOGPIXELSY);
+        FRSPrinter.PageOrientation := Printer.Orientation;
+        FRSPrinter.PageWidth := GetDeviceCaps(Printer.Handle, PHYSICALWIDTH);
+        FRSPrinter.PageHeight := GetDeviceCaps(Printer.Handle, PHYSICALHEIGHT);
+        FRSPrinter.PageWidthP := FRSPrinter.PageWidth/GetDeviceCaps(Printer.Handle, LOGPIXELSX);
+        FRSPrinter.PageHeightP := FRSPrinter.PageHeight/GetDeviceCaps(Printer.Handle, LOGPIXELSY);
         Printer.GetPrinter(ADevice, ADriver, APort, DeviceMode);
-        TRSPrinter(RSPrinter).WinPrinter := ADevice;
+        FRSPrinter.WinPrinter := ADevice;
 
-        if TRSPrinter(RSPrinter).Lines <> Trunc(TRSPrinter(RSPrinter).PageHeightP*6)-4 then
+        if FRSPrinter.Lines <> Trunc(FRSPrinter.PageHeightP*6)-4 then
         begin
-          TRSPrinter(RSPrinter).Lines := Trunc(TRSPrinter(RSPrinter).PageHeightP*6)-4-TRSPrinter(RSPrinter).WinMarginTop div 12-TRSPrinter(RSPrinter).WinMarginBottom div 12;
-          if assigned(TRSPrinter(RSPrinter).ReGenerate)then
+          FRSPrinter.Lines := Trunc(FRSPrinter.PageHeightP*6)-4-FRSPrinter.WinMarginTop div 12-FRSPrinter.WinMarginBottom div 12;
+          if Assigned(FRSPrinter.ReGenerate)then
           begin
-            TRSPrinter(RSPrinter).ReGenerate;
-            UpdateStatus(fpagina,TRSPrinter(RSPrinter).Paginas);
+            FRSPrinter.ReGenerate;
+            UpdateStatus(FPagina, FRSPrinter.Paginas);
 
-            if FPagina > TRSPrinter(RSPrinter).Paginas then
+            if FPagina > FRSPrinter.Paginas then
             begin
-              FPagina := TRSPrinter(RSPrinter).Paginas;
-              UpdateStatus(fpagina,TRSPrinter(RSPrinter).Paginas);
+              FPagina := FRSPrinter.Paginas;
+              UpdateStatus(FPagina, FRSPrinter.Paginas);
             end;
 
-            if FPagina < TRSPrinter(RSPrinter).Paginas then
+            if FPagina < FRSPrinter.Paginas then
             begin
-              BtnPagSigV.Enabled := True;
-              BtnPagUltV.Enabled := True;
+              btnNextPage.Enabled := True;
+              btnLastPage.Enabled := True;
             end
             else
             begin
-              BtnPagSigV.Enabled := False;
-              BtnPagUltV.Enabled := False;
+              btnNextPage.Enabled := False;
+              btnLastPage.Enabled := False;
             end;
           end;
         end;
@@ -402,8 +375,8 @@ begin
 
       Hoja.Free;
       Hoja := TMetaFile.Create;
-      Hoja.Width := Round(TRSPrinter(RSPrinter).PageWidthP * 80); // div 4; // 640;
-      Hoja.Height := Round(TRSPrinter(RSPrinter).PageHeightP * 80); // div 4; // 1056;
+      Hoja.Width := Round(FRSPrinter.PageWidthP * 80); // div 4; // 640;
+      Hoja.Height := Round(FRSPrinter.PageHeightP * 80); // div 4; // 1056;
       HojasNum.Clear;
       While HojasDib.Count > 0 do
       begin
@@ -412,8 +385,8 @@ begin
       end;
 
       GetHoja(FPagina,Hoja,False);
-      Shower.Invalidate;
-      UpdateStatus(fpagina,TRSPrinter(RSPrinter).Paginas);
+      Display.Invalidate;
+      UpdateStatus(FPagina, FRSPrinter.Paginas);
     end;
 
   f.Free;
@@ -423,12 +396,12 @@ procedure TFrmPreview.FormKeyPress(Sender: TObject; var Key: Char);
 begin
   if Key = '+' then
   begin
-    ZoomShowerV.Value := ZoomShowerV.Value + 20;
+    edtZoom.Value := edtZoom.Value + 20;
     Key := #0;
   end
   else if Key = '-' then
   begin
-    ZoomShowerV.Value := ZoomShowerV.Value - 20;
+    edtZoom.Value := edtZoom.Value - 20;
     Key := #0;
   end;
 end;
@@ -470,7 +443,7 @@ begin
     if not ViewDialog then
       Caption := formcaption + ' - ' + 'Preparando Página';
 
-    TRSPrinter(RSPrinter).BuildPage(Numero,Hoja,False,TRSPrinter(RSPrinter).Mode,ViewDialog);
+    FRSPrinter.BuildPageToPreview(Numero, Hoja, FRSPrinter.Mode, ViewDialog);
 
     if not ViewDialog then
       Caption := formcaption;
@@ -490,7 +463,7 @@ var
 begin
   Txt := '';
 
-  if InputQuery('Acesso Rápido','Digite o número da página',Txt) and (StrToIntDef(Txt,0)>0) and (StrToIntDef(Txt,0)<=TRSPrinter(RSPrinter).Paginas) and (StrToIntDef(Txt,0)<>FPagina) then
+  if InputQuery('Acesso Rápido','Digite o número da página',Txt) and (StrToIntDef(Txt,0)>0) and (StrToIntDef(Txt,0)<=FRSPrinter.Paginas) and (StrToIntDef(Txt,0)<>FPagina) then
   begin
     FPagina := StrToIntDef(Txt,0);
     PageChange;
@@ -499,9 +472,10 @@ end;
 
 procedure TFrmPreview.FormMouseWheelDown(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
 begin
-  if (Scroller.VertScrollBar.Position < Scroller.VertScrollBar.Range) then
+  if Scroller.VertScrollBar.Position < Scroller.VertScrollBar.Range then
   begin
     Scroller.VertScrollBar.Position := Scroller.VertScrollBar.Position + 100;
+
     if Scroller.VertScrollBar.Position > Scroller.VertScrollBar.Range then
       Scroller.VertScrollBar.Position := Scroller.VertScrollBar.Range;
   end;
@@ -509,9 +483,10 @@ end;
 
 procedure TFrmPreview.FormMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
 begin
-  if (Scroller.VertScrollBar.Position > 0) then
+  if Scroller.VertScrollBar.Position > 0 then
   begin
     Scroller.VertScrollBar.Position := Scroller.VertScrollBar.Position - 100;
+
     if Scroller.VertScrollBar.Position < 0 then
       Scroller.VertScrollBar.Position := 0;
   end;
@@ -519,9 +494,10 @@ end;
 
 procedure TFrmPreview.ActUpExecute(Sender: TObject);
 begin
-  if (Scroller.VertScrollBar.Position > 0) then
+  if Scroller.VertScrollBar.Position > 0 then
   begin
     Scroller.VertScrollBar.Position := Scroller.VertScrollBar.Position - 100;
+
     if Scroller.VertScrollBar.Position < 0 then
       Scroller.VertScrollBar.Position := 0;
   end;
@@ -529,9 +505,10 @@ end;
 
 procedure TFrmPreview.ActDownExecute(Sender: TObject);
 begin
-  if (Scroller.VertScrollBar.Position < Scroller.VertScrollBar.Range) then
+  if Scroller.VertScrollBar.Position < Scroller.VertScrollBar.Range then
   begin
     Scroller.VertScrollBar.Position := Scroller.VertScrollBar.Position + 100;
+
     if Scroller.VertScrollBar.Position > Scroller.VertScrollBar.Range then
       Scroller.VertScrollBar.Position := Scroller.VertScrollBar.Range;
   end;
@@ -544,9 +521,10 @@ end;
 
 procedure TFrmPreview.ActRightExecute(Sender: TObject);
 begin
-  if (Scroller.HorzScrollBar.Position < Scroller.HorzScrollBar.Range) then
+  if Scroller.HorzScrollBar.Position < Scroller.HorzScrollBar.Range then
   begin
     Scroller.HorzScrollBar.Position := Scroller.HorzScrollBar.Position + 20;
+
     if Scroller.HorzScrollBar.Position > Scroller.HorzScrollBar.Range then
       Scroller.HorzScrollBar.Position := Scroller.HorzScrollBar.Range;
   end;
@@ -554,9 +532,10 @@ end;
 
 procedure TFrmPreview.ActLeftExecute(Sender: TObject);
 begin
-  if (Scroller.HorzScrollBar.Position > 0) then
+  if Scroller.HorzScrollBar.Position > 0 then
   begin
     Scroller.HorzScrollBar.Position := Scroller.HorzScrollBar.Position - 20;
+
     if Scroller.HorzScrollBar.Position < 0 then
       Scroller.HorzScrollBar.Position := 0;
   end;
@@ -573,9 +552,9 @@ end;
 
 procedure TFrmPreview.ActEndExecute(Sender: TObject);
 begin
-  if FPagina < TRSPrinter(RSPrinter).Paginas then
+  if FPagina < FRSPrinter.Paginas then
   begin
-    FPagina := TRSPrinter(RSPrinter).Paginas;
+    FPagina := FRSPrinter.Paginas;
     PageChange;
   end;
 end;
@@ -586,8 +565,7 @@ begin
               'Inicio do relatorio    - Home'+#13+
               'Final do relatorio     - End'+#13+
               'Pagina anterior       - PgUp'+#13+
-              'Pagina Sequinte      - PgDn'+#13+
-              'Imprimir                   - Enter'+#13+
+              'Pagina seguinte      - PgDn'+#13+
               'Fechar                     - Esc' );
 end;
 
@@ -602,16 +580,11 @@ end;
 
 procedure TFrmPreview.ActPgDnExecute(Sender: TObject);
 begin
-  if FPagina < TRSPrinter(RSPrinter).Paginas then
+  if FPagina < FRSPrinter.Paginas then
   begin
     Inc(FPagina);
     PageChange;
   end;
-end;
-
-procedure TFrmPreview.ActEnterExecute(Sender: TObject);
-begin
-  ShowMessage('imprimir');
 end;
 
 end.
