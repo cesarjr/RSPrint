@@ -3,7 +3,7 @@ unit RSPrint.FastMode;
 interface
 
 uses
-  Classes, RSPrint.CommonTypes, RSPrint.Types.Job, RSPrint.Types.Page, RSPrint.FastMode.FastDevice;
+  Classes, RSPrint.CommonTypes, RSPrint.Types.Document, RSPrint.Types.Page, RSPrint.FastMode.FastDevice;
 
 type
   TFastMode = class
@@ -12,28 +12,28 @@ type
     DOUBLE_LINE = #205;
 
   private
-    FJob: TJob;
-    FPrinterStatus: TPrinterStatus;
+    FDocument: TDocument;
     FFastDevice: IFastDevice;
 
     procedure PageContinuosJump;
-    procedure ProcessPauseIfNecessary;
 
     procedure PrintControlCodes(codeSequence: string);
     procedure PrintHorizontalLines(currentLine: Integer; page: TPage; var lineToPrint: string);
     procedure PrintVerticalLines(page: TPage; var lineToPrint: string; currentLine: Integer);
     procedure PrintCurrentLine(page: TPage; var ultimaEscritura: Integer; font: TFastFont; var lineToPrint: string; const currentLine: Integer);
 
-    procedure PrintJob;
-    function PrintPage(number: integer): Boolean;
+    procedure PrintJob(pageNumber: Byte);
+    function PrintPage(pageNumber: integer): Boolean;
 
     procedure PrintFontCodes(font: TFastFont);
 
-  public
-    constructor Create(printerStatus: TPrinterStatus);
-    destructor Destroy; override;
+  public const
+    ALL_PAGES = 0;
 
-    procedure Print(job: TJob);
+  public
+    constructor Create;
+
+    procedure Print(document: TDocument; pageNumber: Byte);
   end;
 
 implementation
@@ -42,63 +42,43 @@ uses
   SysUtils, Windows, Printers, RSPrint.Utils, RSPrint.FastMode.FastDeviceFile, RSPrint.FastMode.FastDeviceSpool,
   Dialogs;
 
-constructor TFastMode.Create(printerStatus: TPrinterStatus);
+constructor TFastMode.Create;
 begin
-  FPrinterStatus := printerStatus;
-
-  FPrinterStatus.StartPrinting;
-
   FFastDevice := TFastDeviceSpool.Create;
   //FFastDevice := TFastDeviceFile.Create;
 end;
 
-destructor TFastMode.Destroy;
+procedure TFastMode.Print(document: TDocument; pageNumber: Byte);
 begin
-  FPrinterStatus.CurrentlyPrinting := False;
-
-  inherited;
+  FDocument := document;
+  PrintJob(pageNumber);
 end;
 
-procedure TFastMode.Print(job: TJob);
-begin
-  FJob := job;
-
-  FPrinterStatus.PrintingJobName := FJob.Name;
-
-  ProcessPauseIfNecessary;
-
-  PrintJob;
-
-  FPrinterStatus.PrintingCanceled := False;
-  FPrinterStatus.PrintingJobName := '';
-end;
-
-procedure TFastMode.ProcessPauseIfNecessary;
-begin
-  while FPrinterStatus.PrintingPaused and not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll do
-    Sleep(100);
-end;
-
-procedure TFastMode.PrintJob;
+procedure TFastMode.PrintJob(pageNumber: Byte);
 var
-  Bien: Boolean;
+  PagePrintedRight: Boolean;
   Copias: Integer;
   I: Integer;
 begin
-  Bien := True;
-  for Copias := 1 to FJob.Copias do
+  PagePrintedRight := True;
+  for Copias := 1 to FDocument.Copies do
   begin
-    FFastDevice.BeginDoc(FJob.Name);
+    FFastDevice.BeginDoc(FDocument.Title);
 
-    for I := 1 to FJob.Pages.Count do
-      if not FPrinterStatus.PrintingCanceled and not FPrinterStatus.PrintingCancelAll and Bien then
-        Bien := Bien and PrintPage(I);
+    if pageNumber = ALL_PAGES then
+    begin
+      for I := 1 to FDocument.Pages.Count do
+        if PagePrintedRight then
+          PagePrintedRight := PrintPage(I);
+    end
+    else
+      PrintPage(pageNumber);
 
     FFastDevice.EndDoc;
   end;
 end;
 
-function TFastMode.PrintPage(number: integer): boolean;
+function TFastMode.PrintPage(pageNumber: integer): boolean;
 var
   CurrentLine: Integer;
   LineToPrint: string;
@@ -106,25 +86,23 @@ var
   Font: TFastFont;
   UltimaEscritura: Integer;
 begin
-  ProcessPauseIfNecessary;
-
   try
     Result := True;
     FFastDevice.BeginPage;
 
-    PrintControlCodes(FJob.ControlCodes.Reset);
-    PrintControlCodes(FJob.ControlCodes.Setup);
+    PrintControlCodes(FDocument.ControlCodes.Reset);
+    PrintControlCodes(FDocument.ControlCodes.Setup);
 
-    PrintControlCodes(FJob.ControlCodes.SelLength);
+    PrintControlCodes(FDocument.ControlCodes.SelLength);
     FFastDevice.Write(#84);
 
-    Font := FJob.DefaultFont;
+    Font := FDocument.DefaultFont;
     PrintFontCodes(Font);
 
     UltimaEscritura := 0;
-    Page := FJob.Pages.Items[number-1];
+    Page := FDocument.Pages.Items[pageNumber-1];
     CurrentLine := 1;
-    while (CurrentLine < TUtils.Min(Page.PrintedLines, FJob.Lineas)) and (not FPrinterStatus.PrintingCanceled) and not (FPrinterStatus.PrintingCancelAll) do
+    while (CurrentLine < TUtils.Min(Page.PrintedLines, FDocument.LinesPerPage)) do
     begin
       LineToPrint := '';
 
@@ -133,11 +111,9 @@ begin
 
       PrintCurrentLine(Page, UltimaEscritura, Font, LineToPrint, CurrentLine);
       Inc(CurrentLine);
-
-      ProcessPauseIfNecessary;
     end;
 
-    if (FJob.PageSize = pzContinuous) and (FJob.PageLength = 0) then
+    if (FDocument.PageSize = pzContinuous) and (FDocument.PageLength = 0) then
       PageContinuosJump
     else
       FFastDevice.Write(#12);
@@ -154,25 +130,25 @@ end;
 
 procedure TFastMode.PrintFontCodes(font: TFastFont);
 begin
-  PrintControlCodes(FJob.ControlCodes.Normal);
+  PrintControlCodes(FDocument.ControlCodes.Normal);
 
   if Bold in Font then
-    PrintControlCodes(FJob.ControlCodes.Bold);
+    PrintControlCodes(FDocument.ControlCodes.Bold);
 
   if Italic in Font then
-    PrintControlCodes(FJob.ControlCodes.Italic);
+    PrintControlCodes(FDocument.ControlCodes.Italic);
 
   if DobleWide in Font then
-    PrintControlCodes(FJob.ControlCodes.Wide)
+    PrintControlCodes(FDocument.ControlCodes.Wide)
   else if Compress in Font then
-    PrintControlCodes(FJob.ControlCodes.CondensedON)
+    PrintControlCodes(FDocument.ControlCodes.CondensedON)
   else
-    PrintControlCodes(FJob.ControlCodes.CondensedOFF);
+    PrintControlCodes(FDocument.ControlCodes.CondensedOFF);
 
   if Underline in Font then
-    PrintControlCodes(FJob.ControlCodes.UnderlineON)
+    PrintControlCodes(FDocument.ControlCodes.UnderlineON)
   else
-    PrintControlCodes(FJob.ControlCodes.UnderlineOFF);
+    PrintControlCodes(FDocument.ControlCodes.UnderlineOFF);
 end;
 
 procedure TFastMode.PrintVerticalLines(page: TPage; var lineToPrint: string; currentLine: Integer);
@@ -551,7 +527,7 @@ procedure TFastMode.PageContinuosJump;
 var
   LinesToJump: Integer;
 begin
-  for LinesToJump := 1 to FJob.PageContinuousJump do
+  for LinesToJump := 1 to FDocument.PageContinuousJump do
     FFastDevice.WriteLn('');
 end;
 
@@ -566,13 +542,13 @@ var
 begin
   if page.WrittenText.Count = UltimaEscritura then
   begin
-    if font <> FJob.DefaultFont then
+    if font <> FDocument.DefaultFont then
     begin // PONEMOS LA FUENTE POR DEFAULT
-      font := FJob.DefaultFont;
+      font := FDocument.DefaultFont;
       PrintFontCodes(font);
     end;
 
-    if FJob.Transliterate and (lineToPrint <> '') then
+    if FDocument.Transliterate and (lineToPrint <> '') then
       CharToOemBuff(PChar(@lineToPrint[1]), PansiChar(@lineToPrint[1]),Length(lineToPrint));
     FFastDevice.WriteLn(lineToPrint);
   end
@@ -591,9 +567,9 @@ begin
         TUtils.InflateLineWithSpaces(lineToPrint, Escritura.Col+Length(Escritura.Text));
         while Columna < Escritura.Col do
         begin
-          if (lineToPrint[Columna] <> #32) and (font <> FJob.DefaultFont) then
+          if (lineToPrint[Columna] <> #32) and (font <> FDocument.DefaultFont) then
           begin // PONEMOS LA FUENTE POR DEFAULT
-            font := FJob.DefaultFont;
+            font := FDocument.DefaultFont;
             PrintFontCodes(font);
           end;
 
@@ -608,10 +584,10 @@ begin
         end;
 
         Txt := Escritura.Text;
-        if FJob.Transliterate and (Txt<>'') then
+        if FDocument.Transliterate and (Txt<>'') then
           CharToOemBuff(PChar(@Txt[1]), PansiChar(@Txt[1]),Length(Txt));
         FFastDevice.Write(Txt);
-        if (Compress in font) and not(Compress in FJob.DefaultFont) then
+        if (Compress in font) and not(Compress in FDocument.DefaultFont) then
         begin
           for i := 1 to Length(Escritura.Text) do
             FFastDevice.Write(#8);
@@ -639,9 +615,9 @@ begin
 
     if LineWasPrinted then
     begin
-      if font <> FJob.DefaultFont then
+      if font <> FDocument.DefaultFont then
       begin // PONEMOS LA FUENTE POR DEFAULT
-        font := FJob.DefaultFont;
+        font := FDocument.DefaultFont;
         PrintFontCodes(font);
       end;
 
@@ -655,13 +631,13 @@ begin
     end
     else
     begin
-      if font <> FJob.DefaultFont then
+      if font <> FDocument.DefaultFont then
       begin // PONEMOS LA FUENTE POR DEFAULT
-        font := FJob.DefaultFont;
+        font := FDocument.DefaultFont;
         PrintFontCodes(font);
       end;
 
-      if FJob.Transliterate and (lineToPrint <> '') then
+      if FDocument.Transliterate and (lineToPrint <> '') then
         AnsiToOemBuff(PansiChar(lineToPrint[1]), PansiChar(lineToPrint[1]), Length(lineToPrint));
 
       FFastDevice.WriteLn(lineToPrint);

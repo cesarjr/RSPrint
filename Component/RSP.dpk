@@ -39,7 +39,7 @@ contains
   RSPrint.FastMode.FastDevice in 'RSPrint.FastMode.FastDevice.pas',
   RSPrint.FastMode.FastDeviceSpool in 'RSPrint.FastMode.FastDeviceSpool.pas',
   RSPrint.FastMode.FastDeviceFile in 'RSPrint.FastMode.FastDeviceFile.pas',
-  RSPrint.Types.Job in 'RSPrint.Types.Job.pas',
+  RSPrint.Types.Document in 'RSPrint.Types.Document.pas',
   RSPrint.Types.Page in 'RSPrint.Types.Page.pas',
   RSPrint.Types.Img in 'RSPrint.Types.Img.pas';
 

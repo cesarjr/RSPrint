@@ -38,8 +38,6 @@ type
 
     constructor Create;
     destructor Destroy; override;
-
-    procedure CopyFrom(origin: TPage);
   end;
 
 implementation
@@ -60,22 +58,6 @@ begin
   Images.Free;
 
   inherited;
-end;
-
-procedure TPage.CopyFrom(origin: TPage);
-var
-  I: Integer;
-begin
-  PrintedLines := origin.PrintedLines + 1;
-
-  for I := 0 to origin.WrittenText.Count-1 do
-    WrittenText.Add(origin.WrittenText[I]);
-
-  for I := 0 to origin.VerticalLines.Count-1 do
-    VerticalLines.Add(origin.VerticalLines[I]);
-
-  for I := 0 to origin.HorizontalLines.Count-1 do
-    HorizontalLines.Add(origin.HorizontalLines[I]);
 end;
 
 end.
