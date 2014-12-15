@@ -1,4 +1,4 @@
-== RSPrint
+h1. RSPrint
 
 A Delphi component for matrix printing using device's native commands.
 
@@ -6,15 +6,27 @@ With this component, you can print in matrix printers using draft mode - high sp
 
 You can use it to fill easily documents like orders, invoices and others that are previous made in off-set.
 
-
-== Delphi and platform compatibility
+h2. Delphi and platform compatibility
 
 This component was tested on Delphi XE. I think it'll run withiout problem in above versions.
 
 It's running just under Microsoft Windows.
 
+h2. How to Install
 
-== About original RSPrint and it's source-code
+"See here in the wiki's project.":https://github.com/cesarjr/rsprint/wiki
+
+h2. Contributing
+
+We encourage you to contribute to RSPrint!
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
+
+h2. About original RSPrint
 
 A variety of versions of this component can be found on Internet.
 
@@ -22,4 +34,8 @@ Unfortunately there isn't (or there wasn't) an official repository to it. And it
 
 So, I found Mr. Saverio Vertoni who told me that was the author. I told him about my plans of maintaining the project and he donated me the source. 
 
-The original source-code can be found {here in the v2.0.0.original}[https://github.com/cesarjr/RSPrint/tree/v2.0.0.original] tag.
+The original source-code can be found "here in the v2.0.0.original":https://github.com/cesarjr/RSPrint/tree/v2.0.0.original tag.
+
+h2. License
+
+RSPrint is released under the "MIT License":http://www.opensource.org/licenses/MIT.
